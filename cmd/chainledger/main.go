@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-    var x records.Transaction
+    var x records.StoredTransaction
     fmt.Println(x)
 }
 

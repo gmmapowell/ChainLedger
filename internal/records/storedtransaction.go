@@ -1,16 +1,16 @@
 package records
 
 import (
-	"crypto/sha512"
+	"hash"
 	"net/url"
 
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
 type StoredTransaction struct {
-	txid         sha512.Hash
+	txid         hash.Hash
 	whenReceived types.Timestamp
 	contentLink  url.URL
-	contentHash  sha512.Hash
+	contentHash  hash.Hash
 	signatories  []types.Signatory
 }
