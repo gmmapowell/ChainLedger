@@ -8,5 +8,10 @@
 		"type": "go",
 		"request": "launch",
 		"program": "cmd/chainledger"
+	},{
+		"name": "ledgerclient",
+		"type": "go",
+		"request": "launch",
+		"program": "cmd/ledgerclient"
 	}]
 }
