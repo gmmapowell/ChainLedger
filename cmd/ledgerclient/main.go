@@ -22,7 +22,7 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	err = tx.Signer("https://user2.com")
+	err = tx.SignerId("https://user2.com")
 	if err != nil {
 		log.Fatal(err)
 		return
