@@ -1,9 +1,12 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"hash"
 	"hash/maphash"
+	"io"
 	"net/url"
 
 	"github.com/gmmapowell/ChainLedger/internal/types"
@@ -82,4 +85,12 @@ func makeSignature(pk string, h hash.Hash) (*types.Signature, error) {
 	var r types.Signature = []byte(pk)
 	r = h.Sum(r)
 	return &r, nil
+}
+
+func (tx *Transaction) JsonReader() (io.Reader, error) {
+	json, err := json.Marshal(tx)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(json), nil
 }

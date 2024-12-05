@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	cli, err := client.NewSubmitter("https://user1.com/", "private-key")
+	cli, err := client.NewSubmitter("http://localhost:5001", "https://user1.com/", "private-key")
 	if err != nil {
 		log.Fatal(err)
 		return
