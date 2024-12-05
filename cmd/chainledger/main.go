@@ -1,13 +1,21 @@
 package main
 
 import (
-    "fmt"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
 
-    "github.com/gmmapowell/ChainLedger/internal/records"
+	client "github.com/gmmapowell/ChainLedger/internal/clienthandler"
 )
 
 func main() {
-    var x records.StoredTransaction
-    fmt.Println(x)
+	log.Println("starting chainledger")
+	storeRecord := client.NewRecordStorage()
+	cliapi := http.NewServeMux()
+	cliapi.Handle("/store", storeRecord)
+	err := http.ListenAndServe(":5001", cliapi)
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		fmt.Printf("error starting server: %s\n", err)
+	}
 }
-
