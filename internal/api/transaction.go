@@ -2,10 +2,13 @@ package api
 
 import (
 	"bytes"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha512"
 	"encoding/json"
 	"fmt"
 	"hash"
-	"hash/maphash"
 	"io"
 	"net/url"
 
@@ -45,11 +48,11 @@ func (tx *Transaction) addSigner(signer *types.Signatory, err error) error {
 	return nil
 }
 
-func (tx *Transaction) Sign(signerURL *url.URL, pk string) error {
+func (tx *Transaction) Sign(signerURL *url.URL, pk *rsa.PrivateKey) error {
 	return tx.doSign(signerURL, pk, nil)
 }
 
-func (tx *Transaction) doSign(signer *url.URL, pk string, e1 error) error {
+func (tx *Transaction) doSign(signer *url.URL, pk *rsa.PrivateKey, e1 error) error {
 	if e1 != nil {
 		return e1
 	}
@@ -76,15 +79,19 @@ func (tx *Transaction) doSign(signer *url.URL, pk string, e1 error) error {
 }
 
 func (tx *Transaction) makeSignableHash() (hash.Hash, error) {
-	var h maphash.Hash
-	h.WriteString("hello, world")
-	return &h, nil
+	var h = sha512.New()
+	h.Write([]byte("hello, world"))
+	return h, nil
 }
 
-func makeSignature(pk string, h hash.Hash) (*types.Signature, error) {
-	var r types.Signature = []byte(pk)
-	r = h.Sum(r)
-	return &r, nil
+func makeSignature(pk *rsa.PrivateKey, h hash.Hash) (*types.Signature, error) {
+	sum := h.Sum(nil)
+	sig, err := rsa.SignPSS(rand.Reader, pk, crypto.SHA512, sum, nil)
+	if err != nil {
+		return nil, err
+	}
+	var ret types.Signature = sig
+	return &ret, nil
 }
 
 func (tx *Transaction) JsonReader() (io.Reader, error) {
@@ -93,4 +100,8 @@ func (tx *Transaction) JsonReader() (io.Reader, error) {
 		return nil, err
 	}
 	return bytes.NewReader(json), nil
+}
+
+func (tx *Transaction) String() string {
+	return fmt.Sprintf("Tx[%s]", tx.ContentLink)
 }

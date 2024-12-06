@@ -1,6 +1,7 @@
 package client
 
 import (
+	"crypto/rsa"
 	"net/http"
 	"net/url"
 
@@ -10,10 +11,10 @@ import (
 type Submitter struct {
 	node *url.URL
 	iam  *url.URL
-	pk   string
+	pk   *rsa.PrivateKey
 }
 
-func NewSubmitter(node string, id string, pk string) (*Submitter, error) {
+func NewSubmitter(node string, id string, pk *rsa.PrivateKey) (*Submitter, error) {
 	nodeAddr, e1 := url.Parse(node)
 	if e1 != nil {
 		return nil, e1
