@@ -6,12 +6,12 @@ import (
 	"log"
 	"net/http"
 
-	client "github.com/gmmapowell/ChainLedger/internal/clienthandler"
+	"github.com/gmmapowell/ChainLedger/internal/clienthandler"
 )
 
 func main() {
 	log.Println("starting chainledger")
-	storeRecord := client.NewRecordStorage()
+	storeRecord := clienthandler.NewRecordStorage()
 	cliapi := http.NewServeMux()
 	cliapi.Handle("/store", storeRecord)
 	err := http.ListenAndServe(":5001", cliapi)
