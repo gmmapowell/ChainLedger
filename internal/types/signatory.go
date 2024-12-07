@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"net/url"
 )
 
@@ -19,4 +20,11 @@ func OtherSignerId(id string) (*Signatory, error) {
 		return nil, err
 	}
 	return OtherSignerURL(u)
+}
+
+func (sig Signatory) MarshalJSON() ([]byte, error) {
+	var m = make(map[string]any)
+	m["Signer"] = sig.Signer.String()
+	m["Signature"] = sig.Signature
+	return json.Marshal(m)
 }

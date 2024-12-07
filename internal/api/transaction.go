@@ -105,3 +105,11 @@ func (tx *Transaction) JsonReader() (io.Reader, error) {
 func (tx *Transaction) String() string {
 	return fmt.Sprintf("Tx[%s]", tx.ContentLink)
 }
+
+func (tx Transaction) MarshalJSON() ([]byte, error) {
+	var m = make(map[string]any)
+	m["ContentLink"] = tx.ContentLink.String()
+	m["ContentHash"] = tx.ContentHash
+	m["Signatories"] = tx.Signatories
+	return json.Marshal(m)
+}
