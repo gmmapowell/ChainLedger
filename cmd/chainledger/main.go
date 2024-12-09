@@ -7,11 +7,14 @@ import (
 	"net/http"
 
 	"github.com/gmmapowell/ChainLedger/internal/clienthandler"
+	"github.com/gmmapowell/ChainLedger/internal/storage"
 )
 
 func main() {
 	log.Println("starting chainledger")
-	storeRecord := clienthandler.NewRecordStorage()
+	pending := storage.NewMemoryPendingStorage()
+	resolver := clienthandler.NewResolver(pending)
+	storeRecord := clienthandler.NewRecordStorage(resolver)
 	cliapi := http.NewServeMux()
 	cliapi.Handle("/store", storeRecord)
 	err := http.ListenAndServe(":5001", cliapi)
