@@ -113,3 +113,23 @@ func (tx Transaction) MarshalJSON() ([]byte, error) {
 	m["Signatories"] = tx.Signatories
 	return json.Marshal(m)
 }
+
+func (tx *Transaction) UnmarshalJSON(bs []byte) error {
+	var wire struct {
+		ContentLink string
+		ContentHash []byte
+		Signatories []*types.Signatory
+	}
+	if err := json.Unmarshal(bs, &wire); err != nil {
+		return err
+	}
+	if url, err := url.Parse(wire.ContentLink); err == nil {
+		tx.ContentLink = url
+	} else {
+		return err
+	}
+	tx.ContentHash = wire.ContentHash
+	tx.Signatories = wire.Signatories
+
+	return nil
+}

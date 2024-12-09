@@ -28,3 +28,21 @@ func (sig Signatory) MarshalJSON() ([]byte, error) {
 	m["Signature"] = sig.Signature
 	return json.Marshal(m)
 }
+
+func (sig *Signatory) UnmarshalJSON(bs []byte) error {
+	var wire struct {
+		Signer    string
+		Signature *Signature
+	}
+	if err := json.Unmarshal(bs, &wire); err != nil {
+		return err
+	}
+	if url, err := url.Parse(wire.Signer); err == nil {
+		sig.Signer = url
+	} else {
+		return err
+	}
+	sig.Signature = wire.Signature
+
+	return nil
+}
