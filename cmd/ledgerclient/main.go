@@ -29,9 +29,12 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	var h maphash.Hash
-	h.WriteString("hello, world")
-	tx, err := api.NewTransaction("http://tx.info/msg1", &h)
+	
+	var hasher maphash.Hash
+	hasher.WriteString("hello, world")
+	h := hasher.Sum(nil)
+
+	tx, err := api.NewTransaction("http://tx.info/msg1", h)
 	if err != nil {
 		log.Fatal(err)
 		return

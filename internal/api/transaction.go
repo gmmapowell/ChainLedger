@@ -17,11 +17,11 @@ import (
 
 type Transaction struct {
 	ContentLink *url.URL
-	ContentHash hash.Hash
+	ContentHash types.Hash
 	Signatories []*types.Signatory
 }
 
-func NewTransaction(linkStr string, h hash.Hash) (*Transaction, error) {
+func NewTransaction(linkStr string, h types.Hash) (*Transaction, error) {
 	link, err := url.Parse(linkStr)
 	if err != nil {
 		return nil, err
