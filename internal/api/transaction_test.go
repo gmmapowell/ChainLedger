@@ -2,7 +2,6 @@ package api_test
 
 import (
 	"bytes"
-	"fmt"
 	"net/url"
 	"testing"
 
@@ -66,7 +65,6 @@ func TestTransactionsHaveDistinctIDs(t *testing.T) {
 		u2, _ := url.Parse(options[bit(0, i)].u2)
 		tx.Signer(u1)
 		tx.Signer(u2)
-		fmt.Printf("idx %d: %v\n", i, tx)
 		all = append(all, tx.ID())
 	}
 
