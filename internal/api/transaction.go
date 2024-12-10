@@ -31,6 +31,18 @@ func NewTransaction(linkStr string, h types.Hash) (*Transaction, error) {
 	return &Transaction{ContentLink: link, ContentHash: h, Signatories: make([]*types.Signatory, 0)}, nil
 }
 
+func (tx Transaction) ID() types.Hash {
+	hasher := sha512.New()
+	hasher.Write([]byte(tx.ContentLink.String()))
+	hasher.Write([]byte("\n"))
+	hasher.Write(tx.ContentHash)
+	for _, s := range tx.Signatories {
+		hasher.Write([]byte(s.Signer.String()))
+		hasher.Write([]byte("\n"))
+	}
+	return hasher.Sum(nil)
+}
+
 func (tx *Transaction) SignerId(signerId string) error {
 	signer, err := types.OtherSignerId(signerId)
 	return tx.addSigner(signer, err)
@@ -113,8 +125,12 @@ func (tx *Transaction) JsonReader() (io.Reader, error) {
 	return bytes.NewReader(json), nil
 }
 
-func (tx *Transaction) String() string {
-	return fmt.Sprintf("Tx[%s]", tx.ContentLink)
+func (tx Transaction) String() string {
+	sigs := ""
+	for _, s := range tx.Signatories {
+		sigs = sigs + ", " + s.Signer.String()
+	}
+	return fmt.Sprintf("Tx[%s, %v%s]", tx.ContentLink, tx.ContentHash, sigs)
 }
 
 func (tx Transaction) MarshalJSON() ([]byte, error) {
