@@ -7,12 +7,17 @@ type PendingStorage interface {
 }
 
 type MemoryPendingStorage struct {
+	store map[int]*api.Transaction
 }
 
 func (mps MemoryPendingStorage) PendingTx(tx *api.Transaction) *api.Transaction {
-	return tx
+	curr := mps.store[0]
+	if curr == nil {
+		mps.store[0] = tx
+	}
+	return curr
 }
 
 func NewMemoryPendingStorage() PendingStorage {
-	return new(MemoryPendingStorage)
+	return &MemoryPendingStorage{store: make(map[int]*api.Transaction)}
 }
