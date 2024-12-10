@@ -34,3 +34,13 @@ func TestTwoSignaturesAddedInInverseCollatingOrderAreReversed(t *testing.T) {
 		t.Fatalf("the second signer was %s\n", tx.Signatories[1].Signer)
 	}
 }
+
+func TestTheSameSignatoryCannotBeAddedTwice(t *testing.T) {
+	tx, _ := api.NewTransaction("https://test.com", []byte("hashcode"))
+	u1, _ := url.Parse("http://user1.com")
+	tx.Signer(u1)
+	err := tx.Signer(u1)
+	if err == nil {
+		t.Fatalf("we were allowed to add the same signer twice")
+	}
+}

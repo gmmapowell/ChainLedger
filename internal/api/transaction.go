@@ -50,6 +50,8 @@ func (tx *Transaction) addSigner(signer *types.Signatory, err error) error {
 		if s.Signer.String() > signer.Signer.String() {
 			tx.Signatories = slices.Insert(tx.Signatories, i, signer)
 			return nil
+		} else if s.Signer.String() == signer.Signer.String() {
+			return fmt.Errorf("duplicate signer: %s", signer.Signer.String())
 		}
 	}
 
