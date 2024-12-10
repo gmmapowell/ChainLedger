@@ -11,6 +11,7 @@ import (
 	"hash"
 	"io"
 	"net/url"
+	"slices"
 
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
@@ -44,6 +45,14 @@ func (tx *Transaction) addSigner(signer *types.Signatory, err error) error {
 	if err != nil {
 		return err
 	}
+
+	for i, s := range tx.Signatories {
+		if s.Signer.String() > signer.Signer.String() {
+			tx.Signatories = slices.Insert(tx.Signatories, i, signer)
+			return nil
+		}
+	}
+
 	tx.Signatories = append(tx.Signatories, signer)
 	return nil
 }
