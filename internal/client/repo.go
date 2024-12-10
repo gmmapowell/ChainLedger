@@ -24,6 +24,7 @@ type MemoryClientRepository struct {
 func MakeMemoryRepo() (ClientRepository, error) {
 	mcr := MemoryClientRepository{clients: make(map[url.URL]*ClientInfo)}
 	mcr.NewUser("https://user1.com/")
+	mcr.NewUser("https://user2.com/")
 	return mcr, nil
 }
 
