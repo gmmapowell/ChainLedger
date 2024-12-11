@@ -8,6 +8,7 @@ import (
 	"github.com/gmmapowell/ChainLedger/internal/api"
 	"github.com/gmmapowell/ChainLedger/internal/client"
 	"github.com/gmmapowell/ChainLedger/internal/clienthandler"
+	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/records"
 	"github.com/gmmapowell/ChainLedger/internal/storage"
 	"github.com/gmmapowell/ChainLedger/internal/types"
@@ -99,6 +100,21 @@ func TestTheReturnedTxHasAllTheFields(t *testing.T) {
 	}
 	checkSignature(t, 0, stx.Signatories, tx1.Signatories)
 	checkSignature(t, 1, stx.Signatories, tx2.Signatories)
+}
+
+func TestTheReturnedTxHasATimestamp(t *testing.T) {
+	setup()
+	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
+	tx1 := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
+	r.ResolveTx(tx1)
+	tx2 := maketx("https://test.com/msg1", "hash", "https://user1.com/", "https://user2.com/", true)
+	stx, _ := r.ResolveTx(tx2)
+	if stx == nil {
+		t.Fatalf("a stored transaction was not returned after both parties had submitted a signed copy")
+	}
+	if stx.WhenReceived != clock.Times[0] {
+		t.Fatalf("the stored transaction was received at %s not %s", stx.WhenReceived.IsoTime(), clock.Times[0].IsoTime())
+	}
 }
 
 func checkNotReturned(t *testing.T, stx *records.StoredTransaction, err error) {
