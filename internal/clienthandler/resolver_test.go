@@ -121,6 +121,16 @@ func TestTheReturnedTxHasATimestamp(t *testing.T) {
 	}
 }
 
+func TestTheReturnedTxIsSigned(t *testing.T) {
+	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
+	setup(&clock)
+	tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/", true)
+	stx := records.CreateStoredTransaction(&clock, tx)
+	if stx.NodeSig == nil {
+		t.Fatalf("the stored transaction was not signed")
+	}
+}
+
 func checkNotReturned(t *testing.T, stx *records.StoredTransaction, err error) {
 	if stx != nil {
 		t.Fatalf("a stored transaction was returned when the message was not fully signed")
