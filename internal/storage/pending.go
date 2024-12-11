@@ -1,23 +1,25 @@
 package storage
 
-import "github.com/gmmapowell/ChainLedger/internal/api"
+import (
+	"github.com/gmmapowell/ChainLedger/internal/api"
+)
 
 type PendingStorage interface {
 	PendingTx(*api.Transaction) *api.Transaction
 }
 
 type MemoryPendingStorage struct {
-	store map[int]*api.Transaction
+	store map[string]*api.Transaction
 }
 
 func (mps MemoryPendingStorage) PendingTx(tx *api.Transaction) *api.Transaction {
-	curr := mps.store[0]
+	curr := mps.store[string(tx.ID())]
 	if curr == nil {
-		mps.store[0] = tx
+		mps.store[string(tx.ID())] = tx
 	}
 	return curr
 }
 
 func NewMemoryPendingStorage() PendingStorage {
-	return &MemoryPendingStorage{store: make(map[int]*api.Transaction)}
+	return &MemoryPendingStorage{store: make(map[string]*api.Transaction)}
 }
