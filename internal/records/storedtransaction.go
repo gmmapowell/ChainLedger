@@ -2,6 +2,9 @@ package records
 
 import (
 	"bytes"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha512"
 	"encoding/binary"
 	"net/url"
@@ -20,7 +23,7 @@ type StoredTransaction struct {
 	NodeSig      *types.Signature
 }
 
-func CreateStoredTransaction(clock helpers.Clock, tx *api.Transaction) *StoredTransaction {
+func CreateStoredTransaction(clock helpers.Clock, nodeKey *rsa.PrivateKey, tx *api.Transaction) (*StoredTransaction, error) {
 	copyLink := *tx.ContentLink
 	ret := StoredTransaction{WhenReceived: clock.Time(), ContentLink: &copyLink, ContentHash: bytes.Clone(tx.ContentHash), Signatories: make([]*types.Signatory, len(tx.Signatories))}
 	hasher := sha512.New()
@@ -38,5 +41,13 @@ func CreateStoredTransaction(clock helpers.Clock, tx *api.Transaction) *StoredTr
 		ret.Signatories[i] = &signatory
 	}
 	ret.TxID = hasher.Sum(nil)
-	return &ret
+
+	sig, err := rsa.SignPSS(rand.Reader, nodeKey, crypto.SHA512, ret.TxID, nil)
+	if err != nil {
+		return nil, err
+	}
+	sig1 := types.Signature(sig)
+	ret.NodeSig = &sig1
+
+	return &ret, nil
 }

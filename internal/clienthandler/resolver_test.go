@@ -2,6 +2,8 @@ package clienthandler_test
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"net/url"
 	"testing"
 
@@ -15,13 +17,15 @@ import (
 )
 
 var repo client.ClientRepository
+var nodeKey *rsa.PrivateKey
 var s storage.PendingStorage
 var r clienthandler.Resolver
 
 func setup(clock helpers.Clock) {
 	repo, _ = client.MakeMemoryRepo()
+	nodeKey, _ = rsa.GenerateKey(rand.Reader, 2048)
 	s = storage.NewMemoryPendingStorage()
-	r = clienthandler.NewResolver(clock, s)
+	r = clienthandler.NewResolver(clock, nodeKey, s)
 }
 
 func maketx(link string, hash string, userkeys ...any) *api.Transaction {
@@ -125,7 +129,7 @@ func TestTheReturnedTxIsSigned(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
 	setup(&clock)
 	tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/", true)
-	stx := records.CreateStoredTransaction(&clock, tx)
+	stx, _ := records.CreateStoredTransaction(&clock, nodeKey, tx)
 	if stx.NodeSig == nil {
 		t.Fatalf("the stored transaction was not signed")
 	}

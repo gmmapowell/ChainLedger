@@ -1,6 +1,8 @@
 package clienthandler
 
 import (
+	"crypto/rsa"
+
 	"github.com/gmmapowell/ChainLedger/internal/api"
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/records"
@@ -12,8 +14,9 @@ type Resolver interface {
 }
 
 type TxResolver struct {
-	clock helpers.Clock
-	store storage.PendingStorage
+	clock   helpers.Clock
+	nodeKey *rsa.PrivateKey
+	store   storage.PendingStorage
 }
 
 func (r TxResolver) ResolveTx(tx *api.Transaction) (*records.StoredTransaction, error) {
@@ -30,12 +33,12 @@ func (r TxResolver) ResolveTx(tx *api.Transaction) (*records.StoredTransaction, 
 	}
 
 	if complete {
-		return records.CreateStoredTransaction(r.clock, curr), nil
+		return records.CreateStoredTransaction(r.clock, r.nodeKey, curr)
 	}
 
 	return nil, nil
 }
 
-func NewResolver(clock helpers.Clock, store storage.PendingStorage) Resolver {
-	return &TxResolver{clock: clock, store: store}
+func NewResolver(clock helpers.Clock, nodeKey *rsa.PrivateKey, store storage.PendingStorage) Resolver {
+	return &TxResolver{clock: clock, nodeKey: nodeKey, store: store}
 }
