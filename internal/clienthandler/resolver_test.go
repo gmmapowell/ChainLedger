@@ -41,29 +41,43 @@ func TestANewTransactionMayBeStoredButReturnsNothing(t *testing.T) {
 	setup()
 	tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 	stx, err := r.ResolveTx(tx)
-	if stx != nil {
-		t.Fatalf("a stored transaction was returned when the message was not fully signed")
-	}
-	if err != nil {
-		t.Fatalf("ResolveTx returned an error: %v\n", err)
-	}
+	checkNotReturned(t, stx, err)
 }
 
 func TestTwoCopiesOfTheTransactionAreEnoughToContinue(t *testing.T) {
 	setup()
 	{
 		tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
-		r.ResolveTx(tx)
+		stx, err := r.ResolveTx(tx)
+		checkNotReturned(t, stx, err)
 	}
-	var stx *records.StoredTransaction
-	var err error
 	{
 		tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", "https://user2.com/", true)
 		r.ResolveTx(tx)
-		stx, err = r.ResolveTx(tx)
+		stx, _ := r.ResolveTx(tx)
+		if stx == nil {
+			t.Fatalf("a stored transaction was not returned after both parties had submitted a signed copy")
+		}
 	}
-	if stx == nil {
-		t.Fatalf("a stored transaction was not returned after both parties had submitted a signed copy")
+}
+
+func TestTwoIndependentTxsCanExistAtOnce(t *testing.T) {
+	setup()
+	{
+		tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
+		stx, err := r.ResolveTx(tx)
+		checkNotReturned(t, stx, err)
+	}
+	{
+		tx := maketx("https://test.com/msg2", "hash4", "https://user1.com/", "https://user2.com/", true)
+		stx, err := r.ResolveTx(tx)
+		checkNotReturned(t, stx, err)
+	}
+}
+
+func checkNotReturned(t *testing.T, stx *records.StoredTransaction, err error) {
+	if stx != nil {
+		t.Fatalf("a stored transaction was returned when the message was not fully signed")
 	}
 	if err != nil {
 		t.Fatalf("ResolveTx returned an error: %v\n", err)
