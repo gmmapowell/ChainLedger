@@ -1,6 +1,7 @@
 package clienthandler_test
 
 import (
+	"bytes"
 	"net/url"
 	"testing"
 
@@ -75,11 +76,47 @@ func TestTwoIndependentTxsCanExistAtOnce(t *testing.T) {
 	}
 }
 
+func TestTheReturnedTxHasAllTheFields(t *testing.T) {
+	setup()
+	tx1 := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
+	r.ResolveTx(tx1)
+	tx2 := maketx("https://test.com/msg1", "hash", "https://user1.com/", "https://user2.com/", true)
+	stx, _ := r.ResolveTx(tx2)
+	if stx == nil {
+		t.Fatalf("a stored transaction was not returned after both parties had submitted a signed copy")
+	}
+	if stx.ContentLink == nil {
+		t.Fatalf("the stored transaction did not have the ContentLink")
+	}
+	if *stx.ContentLink != *tx1.ContentLink {
+		t.Fatalf("the stored transaction ContentLink did not match")
+	}
+	if !bytes.Equal(stx.ContentHash, tx1.ContentHash) {
+		t.Fatalf("the stored transaction ContentHash did not match")
+	}
+	if len(stx.Signatories) != len(tx1.Signatories) {
+		t.Fatalf("the stored transaction did not have the correct number of signatories (%d not %d)", len(stx.Signatories), len(tx1.Signatories))
+	}
+	checkSignature(t, 0, stx.Signatories, tx1.Signatories)
+	checkSignature(t, 1, stx.Signatories, tx2.Signatories)
+}
+
 func checkNotReturned(t *testing.T, stx *records.StoredTransaction, err error) {
 	if stx != nil {
 		t.Fatalf("a stored transaction was returned when the message was not fully signed")
 	}
 	if err != nil {
 		t.Fatalf("ResolveTx returned an error: %v\n", err)
+	}
+}
+
+func checkSignature(t *testing.T, which int, blockA []*types.Signatory, blockB []*types.Signatory) {
+	sigA := blockA[which]
+	sigB := blockB[which]
+	if sigA.Signer.String() != sigB.Signer.String() {
+		t.Fatalf("Signer for %d did not match: %s not %s", which, sigA.Signer.String(), sigB.Signer.String())
+	}
+	if !bytes.Equal(*sigA.Signature, *sigB.Signature) {
+		t.Fatalf("Signature for %d did not match: %x not %x", which, sigA.Signature, sigB.Signature)
 	}
 }
