@@ -21,7 +21,8 @@ func main() {
 	}
 	pending := storage.NewMemoryPendingStorage()
 	resolver := clienthandler.NewResolver(&helpers.ClockLive{}, config.NodeKey, pending)
-	storeRecord := clienthandler.NewRecordStorage(resolver)
+	journaller := storage.NewJournaller()
+	storeRecord := clienthandler.NewRecordStorage(resolver, journaller)
 	cliapi := http.NewServeMux()
 	cliapi.Handle("/store", storeRecord)
 	err = http.ListenAndServe(":5001", cliapi)

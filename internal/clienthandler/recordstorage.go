@@ -7,14 +7,16 @@ import (
 	"net/http"
 
 	"github.com/gmmapowell/ChainLedger/internal/api"
+	"github.com/gmmapowell/ChainLedger/internal/storage"
 )
 
 type RecordStorage struct {
 	resolver Resolver
+	journal  storage.Journaller
 }
 
-func NewRecordStorage(r Resolver) RecordStorage {
-	return RecordStorage{resolver: r}
+func NewRecordStorage(r Resolver, j storage.Journaller) RecordStorage {
+	return RecordStorage{resolver: r, journal: j}
 }
 
 // ServeHTTP implements http.Handler.
@@ -39,8 +41,7 @@ func (r RecordStorage) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 
 	log.Printf("Have transaction %v\n", tx)
 	if stx, err := r.resolver.ResolveTx(&tx); stx != nil {
-		// TODO: move the transaction on to the next stage
-		log.Printf("TODO: move it next stage")
+		r.journal.RecordTx(stx)
 	} else if err != nil {
 		log.Printf("Error resolving tx: %v\n", err)
 		resp.WriteHeader(http.StatusInternalServerError)
