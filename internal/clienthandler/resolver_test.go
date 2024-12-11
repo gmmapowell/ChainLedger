@@ -2,6 +2,7 @@ package clienthandler_test
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"net/url"
@@ -132,6 +133,10 @@ func TestTheReturnedTxIsSigned(t *testing.T) {
 	stx, _ := records.CreateStoredTransaction(&clock, nodeKey, tx)
 	if stx.NodeSig == nil {
 		t.Fatalf("the stored transaction was not signed")
+	}
+	err := rsa.VerifyPSS(&nodeKey.PublicKey, crypto.SHA512, stx.TxID, *stx.NodeSig, nil)
+	if err != nil {
+		t.Fatalf("signature verification failed")
 	}
 }
 
