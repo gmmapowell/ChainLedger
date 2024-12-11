@@ -25,5 +25,10 @@
 		"type": "go",
 		"request": "launch",
 		"program": "cmd/ledgerclient"
+	},{
+		"name": "harness",
+		"type": "go",
+		"request": "launch",
+		"program": "cmd/harness"
 	}]
 }
