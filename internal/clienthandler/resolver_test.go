@@ -116,6 +116,9 @@ func TestTheReturnedTxHasATimestamp(t *testing.T) {
 	if stx.WhenReceived != clock.Times[0] {
 		t.Fatalf("the stored transaction was received at %s not %s", stx.WhenReceived.IsoTime(), clock.Times[0].IsoTime())
 	}
+	if stx.TxID == nil {
+		t.Fatalf("the stored transaction did not have a TxID")
+	}
 }
 
 func checkNotReturned(t *testing.T, stx *records.StoredTransaction, err error) {
