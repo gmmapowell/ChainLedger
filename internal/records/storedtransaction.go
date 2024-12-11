@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/gmmapowell/ChainLedger/internal/api"
+	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
@@ -17,9 +18,9 @@ type StoredTransaction struct {
 	NodeSig      *types.Signature
 }
 
-func CreateStoredTransaction(tx *api.Transaction) *StoredTransaction {
+func CreateStoredTransaction(clock helpers.Clock, tx *api.Transaction) *StoredTransaction {
 	copyLink := *tx.ContentLink
-	ret := StoredTransaction{ContentLink: &copyLink, ContentHash: bytes.Clone(tx.ContentHash), Signatories: make([]*types.Signatory, len(tx.Signatories))}
+	ret := StoredTransaction{WhenReceived: clock.Time(), ContentLink: &copyLink, ContentHash: bytes.Clone(tx.ContentHash), Signatories: make([]*types.Signatory, len(tx.Signatories))}
 	for i, v := range tx.Signatories {
 		copySigner := *v.Signer
 		copySig := types.Signature(bytes.Clone(*v.Signature))

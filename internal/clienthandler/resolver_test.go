@@ -18,10 +18,10 @@ var repo client.ClientRepository
 var s storage.PendingStorage
 var r clienthandler.Resolver
 
-func setup() {
+func setup(clock helpers.Clock) {
 	repo, _ = client.MakeMemoryRepo()
 	s = storage.NewMemoryPendingStorage()
-	r = clienthandler.NewResolver(s)
+	r = clienthandler.NewResolver(clock, s)
 }
 
 func maketx(link string, hash string, userkeys ...any) *api.Transaction {
@@ -40,14 +40,15 @@ func maketx(link string, hash string, userkeys ...any) *api.Transaction {
 }
 
 func TestANewTransactionMayBeStoredButReturnsNothing(t *testing.T) {
-	setup()
+	setup(nil)
 	tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 	stx, err := r.ResolveTx(tx)
 	checkNotReturned(t, stx, err)
 }
 
 func TestTwoCopiesOfTheTransactionAreEnoughToContinue(t *testing.T) {
-	setup()
+	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
+	setup(&clock)
 	{
 		tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 		stx, err := r.ResolveTx(tx)
@@ -55,7 +56,6 @@ func TestTwoCopiesOfTheTransactionAreEnoughToContinue(t *testing.T) {
 	}
 	{
 		tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", "https://user2.com/", true)
-		r.ResolveTx(tx)
 		stx, _ := r.ResolveTx(tx)
 		if stx == nil {
 			t.Fatalf("a stored transaction was not returned after both parties had submitted a signed copy")
@@ -64,7 +64,7 @@ func TestTwoCopiesOfTheTransactionAreEnoughToContinue(t *testing.T) {
 }
 
 func TestTwoIndependentTxsCanExistAtOnce(t *testing.T) {
-	setup()
+	setup(nil)
 	{
 		tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 		stx, err := r.ResolveTx(tx)
@@ -78,7 +78,8 @@ func TestTwoIndependentTxsCanExistAtOnce(t *testing.T) {
 }
 
 func TestTheReturnedTxHasAllTheFields(t *testing.T) {
-	setup()
+	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
+	setup(&clock)
 	tx1 := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 	r.ResolveTx(tx1)
 	tx2 := maketx("https://test.com/msg1", "hash", "https://user1.com/", "https://user2.com/", true)
@@ -103,8 +104,8 @@ func TestTheReturnedTxHasAllTheFields(t *testing.T) {
 }
 
 func TestTheReturnedTxHasATimestamp(t *testing.T) {
-	setup()
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
+	setup(&clock)
 	tx1 := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 	r.ResolveTx(tx1)
 	tx2 := maketx("https://test.com/msg1", "hash", "https://user1.com/", "https://user2.com/", true)
