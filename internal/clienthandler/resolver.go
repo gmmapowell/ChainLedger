@@ -28,7 +28,7 @@ func (r TxResolver) ResolveTx(tx *api.Transaction) (*records.StoredTransaction, 
 	}
 
 	if complete {
-		return &records.StoredTransaction{}, nil
+		return records.CreateStoredTransaction(curr), nil
 	}
 
 	return nil, nil
