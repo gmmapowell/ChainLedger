@@ -9,6 +9,8 @@ import (
 
 type ClientRepository interface {
 	PrivateKey(user *url.URL) (*rsa.PrivateKey, error)
+
+	SubmitterFor(nodeId string, userId string) (*Submitter, error)
 }
 
 type ClientInfo struct {
@@ -52,4 +54,14 @@ func (cr *MemoryClientRepository) NewUser(user string) error {
 	}
 	cr.clients[*u] = &ClientInfo{user: u, privateKey: pk, publicKey: &pk.PublicKey}
 	return nil
+}
+
+func (cr MemoryClientRepository) SubmitterFor(nodeId string, userId string) (*Submitter, error) {
+	if uu, err := url.Parse(userId); err != nil {
+		return nil, err
+	} else if pk, err := cr.PrivateKey(uu); err != nil {
+		return nil, err
+	} else {
+		return NewSubmitter(nodeId, userId, pk)
+	}
 }
