@@ -20,6 +20,7 @@ type Client interface {
 
 type ConfigClient struct {
 	submitter *client.Submitter
+	done      chan struct{}
 }
 
 func (cli *ConfigClient) Begin() {
@@ -44,11 +45,12 @@ func (cli *ConfigClient) Begin() {
 			return
 		}
 		fmt.Printf("submitted transaction: %v", tx)
+		cli.done <- struct{}{}
 	}()
 }
 
 func (cli *ConfigClient) WaitFor() {
-
+	<-cli.done
 }
 
 func ReadConfig() *Config {
@@ -69,7 +71,7 @@ func PrepareClients(c *Config) []Client {
 	if s, err := repo.SubmitterFor("http://localhost:5001", "https://user1.com/"); err != nil {
 		panic(err)
 	} else {
-		ret[0] = &ConfigClient{submitter: s}
+		ret[0] = &ConfigClient{submitter: s, done: make(chan struct{})}
 	}
 	return ret
 }
