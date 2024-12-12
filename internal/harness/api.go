@@ -1,5 +1,9 @@
 package harness
 
+import (
+	"github.com/gmmapowell/ChainLedger/internal/clienthandler"
+)
+
 type Config interface {
 }
 
@@ -13,7 +17,8 @@ func ReadConfig() *Config {
 }
 
 func StartNodes(c *Config) {
-
+	node := clienthandler.NewListenerNode(":5001")
+	go node.Start()
 }
 
 func PrepareClients(c *Config) []Client {
