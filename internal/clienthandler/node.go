@@ -29,8 +29,10 @@ func (node *ListenerNode) Start() {
 	pending := storage.NewMemoryPendingStorage()
 	resolver := NewResolver(&helpers.ClockLive{}, config.NodeKey, pending)
 	journaller := storage.NewJournaller()
-	storeRecord := NewRecordStorage(resolver, journaller)
 	cliapi := http.NewServeMux()
+	pingMe := PingHandler{}
+	cliapi.Handle("/ping", pingMe)
+	storeRecord := NewRecordStorage(resolver, journaller)
 	cliapi.Handle("/store", storeRecord)
 	err = http.ListenAndServe(node.addr, cliapi)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {

@@ -9,6 +9,7 @@ import (
 )
 
 type Submitter struct {
+	cli  *http.Client
 	node *url.URL
 	iam  *url.URL
 	pk   *rsa.PrivateKey
@@ -23,7 +24,12 @@ func NewSubmitter(node string, id string, pk *rsa.PrivateKey) (*Submitter, error
 	if err != nil {
 		return nil, err
 	}
-	return &Submitter{node: nodeAddr, iam: iam, pk: pk}, nil
+	return &Submitter{cli: &http.Client{}, node: nodeAddr, iam: iam, pk: pk}, nil
+}
+
+func (s Submitter) Ping() error {
+	_, err := s.cli.Get(s.node.JoinPath("/ping").String())
+	return err
 }
 
 func (s *Submitter) Submit(tx *api.Transaction) error {
@@ -39,7 +45,6 @@ func (s *Submitter) Submit(tx *api.Transaction) error {
 	if e2 != nil {
 		return e2
 	}
-	cli := http.Client{}
-	_, e3 := cli.Post(s.node.JoinPath("/store").String(), "application/json", json)
+	_, e3 := s.cli.Post(s.node.JoinPath("/store").String(), "application/json", json)
 	return e3
 }

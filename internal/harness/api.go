@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash/maphash"
 	"log"
+	"time"
 
 	"github.com/gmmapowell/ChainLedger/internal/api"
 	"github.com/gmmapowell/ChainLedger/internal/client"
@@ -14,6 +15,7 @@ type Config interface {
 }
 
 type Client interface {
+	PingNode()
 	Begin()
 	WaitFor()
 }
@@ -21,6 +23,22 @@ type Client interface {
 type ConfigClient struct {
 	submitter *client.Submitter
 	done      chan struct{}
+}
+
+func (cli ConfigClient) PingNode() {
+	cnt := 0
+	for {
+		err := cli.submitter.Ping()
+		if err == nil {
+			return
+		}
+		log.Println("ping failed")
+		if cnt >= 10 {
+			panic(err)
+		}
+		cnt++
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func (cli *ConfigClient) Begin() {
@@ -72,6 +90,9 @@ func PrepareClients(c *Config) []Client {
 		panic(err)
 	} else {
 		ret[0] = &ConfigClient{submitter: s, done: make(chan struct{})}
+
+	for _, s := range ret {
+		s.PingNode()
 	}
 	return ret
 }
