@@ -14,10 +14,12 @@ import (
 
 type Config interface {
 	NodeEndpoints() []string
+	ClientsPerNode() map[string][]CliConfig
 }
 
 type HarnessConfig struct {
 	nodeEndpoints []string
+	clients       map[string][]CliConfig
 }
 
 // NodeEndpoints implements Config.
@@ -25,8 +27,27 @@ func (c *HarnessConfig) NodeEndpoints() []string {
 	return c.nodeEndpoints
 }
 
+// ClientsPerNode implements Config.
+func (c *HarnessConfig) ClientsPerNode() map[string][]CliConfig {
+	return c.clients
+}
+
+type CliConfig struct {
+	client string
+	other  string
+}
+
 func ReadConfig() Config {
-	return &HarnessConfig{nodeEndpoints: []string{":5001", ":5002"}}
+	return &HarnessConfig{nodeEndpoints: []string{":5001", ":5002"}, clients: map[string][]CliConfig{
+		"http://localhost:5001": {
+			CliConfig{client: "https://user1.com/", other: "https://user2.com/"},
+			CliConfig{client: "https://user2.com/", other: "https://user1.com/"},
+		},
+		"http://localhost:5002": {
+			CliConfig{client: "https://user1.com/", other: "https://user2.com/"},
+			CliConfig{client: "https://user2.com/", other: "https://user1.com/"},
+		},
+	}}
 }
 
 type Client interface {
@@ -99,18 +120,17 @@ func PrepareClients(c Config) []Client {
 	if err != nil {
 		panic(err)
 	}
-	ret := make([]Client, 2)
-	if s, err := repo.SubmitterFor("http://localhost:5001", "https://user1.com/"); err != nil {
-		panic(err)
-	} else {
-		url, _ := url.Parse("https://user2.com/")
-		ret[0] = &ConfigClient{submitter: s, other: url, done: make(chan struct{})}
-	}
-	if s, err := repo.SubmitterFor("http://localhost:5001", "https://user2.com/"); err != nil {
-		panic(err)
-	} else {
-		url, _ := url.Parse("https://user1.com/")
-		ret[1] = &ConfigClient{submitter: s, other: url, done: make(chan struct{})}
+	ret := make([]Client, 0)
+	m := c.ClientsPerNode()
+	for node, clis := range m {
+		for _, cli := range clis {
+			if s, err := repo.SubmitterFor(node, cli.client); err != nil {
+				panic(err)
+			} else {
+				url, _ := url.Parse(cli.other)
+				ret = append(ret, &ConfigClient{submitter: s, other: url, done: make(chan struct{})})
+			}
+		}
 	}
 
 	for _, s := range ret {
