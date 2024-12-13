@@ -1,9 +1,10 @@
 package harness
 
 import (
+	"crypto/sha512"
 	"fmt"
-	"hash/maphash"
 	"log"
+	"net/url"
 	"time"
 
 	"github.com/gmmapowell/ChainLedger/internal/api"
@@ -22,6 +23,7 @@ type Client interface {
 
 type ConfigClient struct {
 	submitter *client.Submitter
+	other     *url.URL
 	done      chan struct{}
 }
 
@@ -43,8 +45,8 @@ func (cli ConfigClient) PingNode() {
 
 func (cli *ConfigClient) Begin() {
 	go func() {
-		var hasher maphash.Hash
-		hasher.WriteString("hello, world")
+		hasher := sha512.New()
+		hasher.Write([]byte("hello, world"))
 		h := hasher.Sum(nil)
 
 		tx, err := api.NewTransaction("http://tx.info/msg1", h)
@@ -52,7 +54,7 @@ func (cli *ConfigClient) Begin() {
 			log.Fatal(err)
 			return
 		}
-		err = tx.SignerId("https://user2.com")
+		err = tx.Signer(cli.other)
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -85,11 +87,19 @@ func PrepareClients(c *Config) []Client {
 	if err != nil {
 		panic(err)
 	}
-	ret := make([]Client, 1)
+	ret := make([]Client, 2)
 	if s, err := repo.SubmitterFor("http://localhost:5001", "https://user1.com/"); err != nil {
 		panic(err)
 	} else {
-		ret[0] = &ConfigClient{submitter: s, done: make(chan struct{})}
+		url, _ := url.Parse("https://user2.com/")
+		ret[0] = &ConfigClient{submitter: s, other: url, done: make(chan struct{})}
+	}
+	if s, err := repo.SubmitterFor("http://localhost:5001", "https://user2.com/"); err != nil {
+		panic(err)
+	} else {
+		url, _ := url.Parse("https://user1.com/")
+		ret[1] = &ConfigClient{submitter: s, other: url, done: make(chan struct{})}
+	}
 
 	for _, s := range ret {
 		s.PingNode()

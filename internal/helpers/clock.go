@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/gmmapowell/ChainLedger/internal/types"
@@ -54,6 +53,5 @@ type ClockLive struct {
 
 func (clock *ClockLive) Time() types.Timestamp {
 	gotime := time.Now().UnixMilli()
-	fmt.Printf("%d", gotime)
 	return types.Timestamp(gotime)
 }
