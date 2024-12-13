@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	rno "math/rand/v2"
 	"net/url"
 )
 
@@ -11,6 +12,8 @@ type ClientRepository interface {
 	PrivateKey(user *url.URL) (*rsa.PrivateKey, error)
 
 	SubmitterFor(nodeId string, userId string) (*Submitter, error)
+
+	OtherThan(userId string) []url.URL
 }
 
 type ClientInfo struct {
@@ -21,6 +24,7 @@ type ClientInfo struct {
 
 type MemoryClientRepository struct {
 	clients map[url.URL]*ClientInfo
+	users   []url.URL
 }
 
 func MakeMemoryRepo() (MemoryClientRepository, error) {
@@ -55,6 +59,7 @@ func (cr *MemoryClientRepository) NewUser(user string) error {
 	if e2 != nil {
 		return e2
 	}
+	cr.users = append(cr.users, *u)
 	cr.clients[*u] = &ClientInfo{user: u, privateKey: pk, publicKey: &pk.PublicKey}
 	return nil
 }
@@ -66,5 +71,15 @@ func (cr MemoryClientRepository) SubmitterFor(nodeId string, userId string) (*Su
 		return nil, err
 	} else {
 		return NewSubmitter(nodeId, userId, pk)
+	}
+}
+
+func (cr MemoryClientRepository) OtherThan(userId string) []url.URL {
+	for {
+		q := rno.IntN(len(cr.users))
+		who := cr.users[q]
+		if who.String() != userId {
+			return []url.URL{who}
+		}
 	}
 }
