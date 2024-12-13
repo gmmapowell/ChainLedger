@@ -23,10 +23,8 @@ type MemoryClientRepository struct {
 	clients map[url.URL]*ClientInfo
 }
 
-func MakeMemoryRepo() (ClientRepository, error) {
+func MakeMemoryRepo() (MemoryClientRepository, error) {
 	mcr := MemoryClientRepository{clients: make(map[url.URL]*ClientInfo)}
-	mcr.NewUser("https://user1.com/")
-	mcr.NewUser("https://user2.com/")
 	return mcr, nil
 }
 
@@ -38,6 +36,11 @@ func (cr MemoryClientRepository) PrivateKey(user *url.URL) (pk *rsa.PrivateKey, 
 		pk = entry.privateKey
 	}
 	return
+}
+
+func (cr MemoryClientRepository) HasUser(user string) bool {
+	u, _ := url.Parse(user)
+	return u != nil && cr.clients[*u] != nil
 }
 
 func (cr *MemoryClientRepository) NewUser(user string) error {

@@ -120,8 +120,17 @@ func PrepareClients(c Config) []Client {
 	if err != nil {
 		panic(err)
 	}
-	ret := make([]Client, 0)
 	m := c.ClientsPerNode()
+	for _, clis := range m {
+		for _, cli := range clis {
+			if repo.HasUser(cli.client) {
+				continue
+			} else if err := repo.NewUser(cli.client); err != nil {
+				panic(err)
+			}
+		}
+	}
+	ret := make([]Client, 0)
 	for node, clis := range m {
 		for _, cli := range clis {
 			if s, err := repo.SubmitterFor(node, cli.client); err != nil {

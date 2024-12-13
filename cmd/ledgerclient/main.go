@@ -14,6 +14,9 @@ func main() {
 	if e1 != nil {
 		panic(e1)
 	}
+	repo.NewUser("https://user1.com/")
+	repo.NewUser("https://user2.com/")
+
 	cli, err := repo.SubmitterFor("http://localhost:5001", "https://user1.com/")
 	if err != nil {
 		panic(err)
