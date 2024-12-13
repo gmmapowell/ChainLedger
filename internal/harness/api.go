@@ -3,6 +3,8 @@ package harness
 import (
 	"crypto/sha512"
 	"log"
+	"slices"
+	"sync"
 	"time"
 
 	rno "math/rand/v2"
@@ -61,6 +63,8 @@ type ConfigClient struct {
 	submitter *client.Submitter
 	user      string
 	count     int
+	cosigners map[string]chan<- PleaseSign
+	signFor   []<-chan PleaseSign
 	done      chan struct{}
 }
 
@@ -80,8 +84,26 @@ func (cli ConfigClient) PingNode() {
 	}
 }
 
+type PleaseSign struct {
+}
+
 func (cli *ConfigClient) Begin() {
+	// We need to coordinate activity across all the cosigner threads, so create a waitgroup
+	var wg sync.WaitGroup
+
+	// Create one goroutine for each of the other clients attached to "this" node which might ask us to cosign for them
+	for _, c := range cli.signFor {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for ps := range c {
+				log.Printf("have message to sign: %v\n", ps)
+			}
+		}()
+	}
+
 	go func() {
+		// Publish all of "our" messages
 		for i := 0; i < cli.count; i++ {
 			tx, err := makeMessage(cli)
 			if err != nil {
@@ -94,6 +116,16 @@ func (cli *ConfigClient) Begin() {
 				return
 			}
 		}
+
+		// Tell all of the remote cosigners that we have finished by closing the channels
+		for _, c := range cli.cosigners {
+			close(c)
+		}
+
+		// Make sure all of our cosigners have finished
+		wg.Wait()
+
+		// Now we can report that we are fully done
 		cli.done <- struct{}{}
 	}()
 }
@@ -122,6 +154,7 @@ func (cli *ConfigClient) WaitFor() {
 	<-cli.done
 }
 
+// Start the nodes
 func StartNodes(c Config) {
 	for _, ep := range c.NodeEndpoints() {
 		node := clienthandler.NewListenerNode(ep)
@@ -129,11 +162,15 @@ func StartNodes(c Config) {
 	}
 }
 
+// Build up the list of all the clients
 func PrepareClients(c Config) []Client {
+	// Create the one and only client side repo
 	repo, err := client.MakeMemoryRepo()
 	if err != nil {
 		panic(err)
 	}
+
+	// Find all the users who are connecting to nodes and make sure they are in the repo
 	m := c.ClientsPerNode()
 	for _, clis := range m {
 		for _, cli := range clis {
@@ -144,13 +181,29 @@ func PrepareClients(c Config) []Client {
 			}
 		}
 	}
+
+	// Create all the clients that will publish, and make sure that they also have all the corresponding listeners
 	ret := make([]Client, 0)
 	for node, clis := range m {
+		// Figure out all the users on this node, and thus the cross-product of co-signing channels we need
+		allUsers := usersOnNode(clis)
+		chans := crossChannels(allUsers)
+
+		// Now create the submitters and thus the clients and build a list
 		for _, cli := range clis {
 			if s, err := repo.SubmitterFor(node, cli.client); err != nil {
 				panic(err)
 			} else {
-				ret = append(ret, &ConfigClient{repo: &repo, submitter: s, user: cli.client, count: cli.count, done: make(chan struct{})})
+				client := ConfigClient{
+					repo:      &repo,
+					submitter: s,
+					user:      cli.client,
+					count:     cli.count,
+					signFor:   chanReceivers(chans, cli.client),
+					cosigners: chanSenders(chans, cli.client),
+					done:      make(chan struct{}),
+				}
+				ret = append(ret, &client)
 			}
 		}
 	}
@@ -161,6 +214,59 @@ func PrepareClients(c Config) []Client {
 	return ret
 }
 
+// Find all the users in a list of clients associated with a given node
+func usersOnNode(clis []CliConfig) []string {
+	ret := make([]string, 0)
+	for _, c := range clis {
+		if slices.Index(ret, c.client) == -1 {
+			ret = append(ret, c.client)
+		}
+	}
+	return ret
+}
+
+// Create a cross-product of all the channels that request counterparties to sign
+func crossChannels(allUsers []string) map[string]map[string]chan PleaseSign {
+	ret := make(map[string]map[string]chan PleaseSign)
+	for _, from := range allUsers {
+		for _, to := range allUsers {
+			if from == to {
+				continue
+			}
+			m1, e1 := ret[from]
+			if !e1 {
+				m1 = make(map[string]chan PleaseSign)
+				ret[from] = m1
+			}
+			m1[to] = make(chan PleaseSign)
+		}
+	}
+	return ret
+}
+
+// Extract all the "from" entries for a given user as a map of user id -> sending channel
+func chanSenders(chans map[string]map[string]chan PleaseSign, user string) map[string]chan<- PleaseSign {
+	ret := make(map[string]chan<- PleaseSign, 0)
+	for u, c := range chans[user] {
+		ret[u] = c
+	}
+	return ret
+}
+
+// Extract all the "to" entries for a given user as receiving channels
+func chanReceivers(chans map[string]map[string]chan PleaseSign, user string) []<-chan PleaseSign {
+	ret := make([]<-chan PleaseSign, 0)
+	for _, m := range chans {
+		for u, c := range m {
+			if u == user {
+				ret = append(ret, c)
+			}
+		}
+	}
+	return ret
+}
+
+// Generate a random string to use as the "unique" message path
 func randomPath() string {
 	ns := 6 + rno.IntN(6)
 	ret := make([]rune, ns)
@@ -170,11 +276,12 @@ func randomPath() string {
 	return string(ret)
 }
 
+// Generate a random character from a-z._
 func alnumRune() rune {
 	r := rno.IntN(38)
 	switch {
 	case r == 0:
-		return '-'
+		return '_'
 	case r == 1:
 		return '.'
 	case r >= 2 && r < 12:
@@ -185,6 +292,7 @@ func alnumRune() rune {
 	panic("this should be in the range 0-38")
 }
 
+// Generate a random set of bytes to be used as a hash
 func randomBytes(ns int) []byte {
 	ret := make([]byte, ns)
 	for i := 0; i < ns; i++ {
