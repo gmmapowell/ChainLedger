@@ -9,6 +9,8 @@ import (
 )
 
 type ClientRepository interface {
+	URLFor(user string) url.URL
+
 	PrivateKey(user *url.URL) (*rsa.PrivateKey, error)
 
 	SubmitterFor(nodeId string, userId string) (*Submitter, error)
@@ -25,11 +27,16 @@ type ClientInfo struct {
 type MemoryClientRepository struct {
 	clients map[url.URL]*ClientInfo
 	users   []url.URL
+	byname  map[string]url.URL
 }
 
 func MakeMemoryRepo() (MemoryClientRepository, error) {
-	mcr := MemoryClientRepository{clients: make(map[url.URL]*ClientInfo)}
+	mcr := MemoryClientRepository{clients: make(map[url.URL]*ClientInfo), users: make([]url.URL, 0), byname: make(map[string]url.URL)}
 	return mcr, nil
+}
+
+func (cr MemoryClientRepository) URLFor(user string) url.URL {
+	return cr.byname[user]
 }
 
 func (cr MemoryClientRepository) PrivateKey(user *url.URL) (pk *rsa.PrivateKey, e error) {
@@ -43,8 +50,8 @@ func (cr MemoryClientRepository) PrivateKey(user *url.URL) (pk *rsa.PrivateKey, 
 }
 
 func (cr MemoryClientRepository) HasUser(user string) bool {
-	u, _ := url.Parse(user)
-	return u != nil && cr.clients[*u] != nil
+	_, has := cr.byname[user]
+	return has
 }
 
 func (cr *MemoryClientRepository) NewUser(user string) error {
@@ -52,6 +59,7 @@ func (cr *MemoryClientRepository) NewUser(user string) error {
 	if e1 != nil {
 		return e1
 	}
+	cr.byname[user] = *u
 	if cr.clients[*u] != nil {
 		return fmt.Errorf("user %s already exists in the repo", user)
 	}

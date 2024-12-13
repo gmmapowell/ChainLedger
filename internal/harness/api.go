@@ -3,6 +3,7 @@ package harness
 import (
 	"crypto/sha512"
 	"log"
+	"net/url"
 	"slices"
 	"sync"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/gmmapowell/ChainLedger/internal/api"
 	"github.com/gmmapowell/ChainLedger/internal/client"
 	"github.com/gmmapowell/ChainLedger/internal/clienthandler"
+	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
 type Config interface {
@@ -85,6 +87,10 @@ func (cli ConfigClient) PingNode() {
 }
 
 type PleaseSign struct {
+	content    string
+	hash       types.Hash
+	originator url.URL
+	cosigners  []url.URL
 }
 
 func (cli *ConfigClient) Begin() {
@@ -97,7 +103,16 @@ func (cli *ConfigClient) Begin() {
 		go func() {
 			defer wg.Done()
 			for ps := range c {
-				log.Printf("have message to sign: %v\n", ps)
+				tx, err := makeTransaction(ps, cli.user)
+				if err != nil {
+					log.Fatal(err)
+					continue
+				}
+				err = cli.submitter.Submit(tx)
+				if err != nil {
+					log.Fatal(err)
+					continue
+				}
 			}
 		}()
 	}
@@ -105,15 +120,23 @@ func (cli *ConfigClient) Begin() {
 	go func() {
 		// Publish all of "our" messages
 		for i := 0; i < cli.count; i++ {
-			tx, err := makeMessage(cli)
+			ps, err := makeMessage(cli)
 			if err != nil {
 				log.Fatal(err)
-				return
+				continue
+			}
+			tx, err := makeTransaction(ps, cli.user)
+			if err != nil {
+				log.Fatal(err)
+				continue
 			}
 			err = cli.submitter.Submit(tx)
 			if err != nil {
 				log.Fatal(err)
-				return
+				continue
+			}
+			for _, u := range ps.cosigners {
+				cli.cosigners[u.String()] <- ps
 			}
 		}
 
@@ -130,18 +153,39 @@ func (cli *ConfigClient) Begin() {
 	}()
 }
 
-func makeMessage(cli *ConfigClient) (*api.Transaction, error) {
+// Create a random message and return it as a PleaseSign
+func makeMessage(cli *ConfigClient) (PleaseSign, error) {
 	content := "http://tx.info/" + randomPath()
+
 	hasher := sha512.New()
 	hasher.Write(randomBytes(16))
 	h := hasher.Sum(nil)
 
-	tx, err := api.NewTransaction(content, h)
+	return PleaseSign{
+		content:    content,
+		hash:       h,
+		originator: cli.repo.URLFor(cli.user),
+		cosigners:  cli.repo.OtherThan(cli.user),
+	}, nil
+}
+
+// Create a transaction from a PleaseSign request
+func makeTransaction(ps PleaseSign, submitter string) (*api.Transaction, error) {
+	tx, err := api.NewTransaction(ps.content, ps.hash)
 	if err != nil {
 		return nil, err
 	}
-	for _, s := range cli.repo.OtherThan(cli.user) {
+	for _, s := range ps.cosigners {
+		if s.String() == submitter {
+			continue
+		}
 		err = tx.Signer(&s)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if ps.originator.String() != submitter {
+		err = tx.Signer(&ps.originator)
 		if err != nil {
 			return nil, err
 		}
@@ -150,6 +194,7 @@ func makeMessage(cli *ConfigClient) (*api.Transaction, error) {
 	return tx, nil
 }
 
+// Wait for the Begin goroutine to signal that it is fully done
 func (cli *ConfigClient) WaitFor() {
 	<-cli.done
 }
