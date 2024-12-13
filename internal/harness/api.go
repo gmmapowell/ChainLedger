@@ -34,17 +34,18 @@ func (c *HarnessConfig) ClientsPerNode() map[string][]CliConfig {
 
 type CliConfig struct {
 	client string
+	count  int
 }
 
 func ReadConfig() Config {
 	return &HarnessConfig{nodeEndpoints: []string{":5001", ":5002"}, clients: map[string][]CliConfig{
 		"http://localhost:5001": {
-			CliConfig{client: "https://user1.com/"},
-			CliConfig{client: "https://user2.com/"},
+			CliConfig{client: "https://user1.com/", count: 10},
+			CliConfig{client: "https://user2.com/", count: 2},
 		},
 		"http://localhost:5002": {
-			CliConfig{client: "https://user1.com/"},
-			CliConfig{client: "https://user2.com/"},
+			CliConfig{client: "https://user1.com/", count: 5},
+			CliConfig{client: "https://user2.com/", count: 7},
 		},
 	}}
 }
@@ -59,6 +60,7 @@ type ConfigClient struct {
 	repo      client.ClientRepository
 	submitter *client.Submitter
 	user      string
+	count     int
 	done      chan struct{}
 }
 
@@ -80,15 +82,17 @@ func (cli ConfigClient) PingNode() {
 
 func (cli *ConfigClient) Begin() {
 	go func() {
-		tx, err := makeMessage(cli)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-		err = cli.submitter.Submit(tx)
-		if err != nil {
-			log.Fatal(err)
-			return
+		for i := 0; i < cli.count; i++ {
+			tx, err := makeMessage(cli)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+			err = cli.submitter.Submit(tx)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
 		}
 		cli.done <- struct{}{}
 	}()
@@ -146,7 +150,7 @@ func PrepareClients(c Config) []Client {
 			if s, err := repo.SubmitterFor(node, cli.client); err != nil {
 				panic(err)
 			} else {
-				ret = append(ret, &ConfigClient{repo: &repo, submitter: s, user: cli.client, done: make(chan struct{})})
+				ret = append(ret, &ConfigClient{repo: &repo, submitter: s, user: cli.client, count: cli.count, done: make(chan struct{})})
 			}
 		}
 	}
