@@ -13,6 +13,20 @@ import (
 )
 
 type Config interface {
+	NodeEndpoints() []string
+}
+
+type HarnessConfig struct {
+	nodeEndpoints []string
+}
+
+// NodeEndpoints implements Config.
+func (c *HarnessConfig) NodeEndpoints() []string {
+	return c.nodeEndpoints
+}
+
+func ReadConfig() Config {
+	return &HarnessConfig{nodeEndpoints: []string{":5001", ":5002"}}
 }
 
 type Client interface {
@@ -73,16 +87,14 @@ func (cli *ConfigClient) WaitFor() {
 	<-cli.done
 }
 
-func ReadConfig() *Config {
-	return nil
+func StartNodes(c Config) {
+	for _, ep := range c.NodeEndpoints() {
+		node := clienthandler.NewListenerNode(ep)
+		go node.Start()
+	}
 }
 
-func StartNodes(c *Config) {
-	node := clienthandler.NewListenerNode(":5001")
-	go node.Start()
-}
-
-func PrepareClients(c *Config) []Client {
+func PrepareClients(c Config) []Client {
 	repo, err := client.MakeMemoryRepo()
 	if err != nil {
 		panic(err)
