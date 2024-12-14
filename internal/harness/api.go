@@ -2,8 +2,11 @@ package harness
 
 import (
 	"crypto/sha512"
+	"encoding/json"
+	"io"
 	"log"
 	"net/url"
+	"os"
 	"slices"
 	"sync"
 	"time"
@@ -22,36 +25,37 @@ type Config interface {
 }
 
 type HarnessConfig struct {
-	nodeEndpoints []string
-	clients       map[string][]CliConfig
+	Nodes   []string
+	Clients map[string][]CliConfig
 }
 
 // NodeEndpoints implements Config.
 func (c *HarnessConfig) NodeEndpoints() []string {
-	return c.nodeEndpoints
+	return c.Nodes
 }
 
 // ClientsPerNode implements Config.
 func (c *HarnessConfig) ClientsPerNode() map[string][]CliConfig {
-	return c.clients
+	return c.Clients
 }
 
 type CliConfig struct {
-	client string
-	count  int
+	Client string `json:"user"`
+	Count  int
 }
 
-func ReadConfig() Config {
-	return &HarnessConfig{nodeEndpoints: []string{":5001", ":5002"}, clients: map[string][]CliConfig{
-		"http://localhost:5001": {
-			CliConfig{client: "https://user1.com/", count: 10},
-			CliConfig{client: "https://user2.com/", count: 2},
-		},
-		"http://localhost:5002": {
-			CliConfig{client: "https://user1.com/", count: 5},
-			CliConfig{client: "https://user2.com/", count: 7},
-		},
-	}}
+func ReadConfig(file string) Config {
+	fd, err := os.Open(file)
+	if err != nil {
+		panic(err)
+	}
+	defer fd.Close()
+
+	bytes, _ := io.ReadAll(fd)
+	var ret HarnessConfig
+	json.Unmarshal(bytes, &ret)
+
+	return &ret
 }
 
 type Client interface {
@@ -219,9 +223,9 @@ func PrepareClients(c Config) []Client {
 	m := c.ClientsPerNode()
 	for _, clis := range m {
 		for _, cli := range clis {
-			if repo.HasUser(cli.client) {
+			if repo.HasUser(cli.Client) {
 				continue
-			} else if err := repo.NewUser(cli.client); err != nil {
+			} else if err := repo.NewUser(cli.Client); err != nil {
 				panic(err)
 			}
 		}
@@ -236,16 +240,16 @@ func PrepareClients(c Config) []Client {
 
 		// Now create the submitters and thus the clients and build a list
 		for _, cli := range clis {
-			if s, err := repo.SubmitterFor(node, cli.client); err != nil {
+			if s, err := repo.SubmitterFor(node, cli.Client); err != nil {
 				panic(err)
 			} else {
 				client := ConfigClient{
 					repo:      &repo,
 					submitter: s,
-					user:      cli.client,
-					count:     cli.count,
-					signFor:   chanReceivers(chans, cli.client),
-					cosigners: chanSenders(chans, cli.client),
+					user:      cli.Client,
+					count:     cli.Count,
+					signFor:   chanReceivers(chans, cli.Client),
+					cosigners: chanSenders(chans, cli.Client),
 					done:      make(chan struct{}),
 				}
 				ret = append(ret, &client)
@@ -263,8 +267,8 @@ func PrepareClients(c Config) []Client {
 func usersOnNode(clis []CliConfig) []string {
 	ret := make([]string, 0)
 	for _, c := range clis {
-		if slices.Index(ret, c.client) == -1 {
-			ret = append(ret, c.client)
+		if slices.Index(ret, c.Client) == -1 {
+			ret = append(ret, c.Client)
 		}
 	}
 	return ret

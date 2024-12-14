@@ -1,0 +1,13 @@
+{
+	"nodes": [":5001", ":5002"],
+	"clients": {
+		"http://localhost:5001": [
+			{ "user": "https://user1.com/", "count": 10 },
+			{ "user": "https://user2.com/", "count": 2 }
+		],
+		"http://localhost:5002": [
+			{ "user": "https://user1.com/", "count": 5 },
+			{ "user": "https://user2.com/", "count": 6 }
+		]
+	}
+}

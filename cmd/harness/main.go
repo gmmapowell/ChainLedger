@@ -1,16 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/gmmapowell/ChainLedger/internal/harness"
 )
 
 func main() {
+	if len(os.Args) != 2 {
+		fmt.Printf("Usage: harness <json>\n")
+		return
+	}
 	log.Println("starting harness")
 
-	config := harness.ReadConfig()
+	config := harness.ReadConfig(os.Args[1])
 	harness.StartNodes(config)
 	clients := harness.PrepareClients(config)
 

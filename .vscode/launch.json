@@ -29,6 +29,9 @@
 		"name": "harness",
 		"type": "go",
 		"request": "launch",
-		"program": "cmd/harness"
+		"program": "cmd/harness",
+		"args": [
+			"../../config/harness/node_2.json"
+		]
 	}]
 }
