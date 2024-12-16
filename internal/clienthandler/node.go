@@ -21,20 +21,25 @@ type ListenerNode struct {
 
 func (node *ListenerNode) Start() {
 	log.Println("starting chainledger node")
+	clock := helpers.ClockLive{}
 	config, err := config.ReadNodeConfig()
 	if err != nil {
 		fmt.Printf("error reading config: %s\n", err)
 		return
 	}
 	pending := storage.NewMemoryPendingStorage()
-	resolver := NewResolver(&helpers.ClockLive{}, config.NodeKey, pending)
+	resolver := NewResolver(&clock, config.NodeKey, pending)
 	journaller := storage.NewJournaller()
+	node.startAPIListener(resolver, journaller)
+}
+
+func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage.Journaller) {
 	cliapi := http.NewServeMux()
 	pingMe := PingHandler{}
 	cliapi.Handle("/ping", pingMe)
 	storeRecord := NewRecordStorage(resolver, journaller)
 	cliapi.Handle("/store", storeRecord)
-	err = http.ListenAndServe(node.addr, cliapi)
+	err := http.ListenAndServe(node.addr, cliapi)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("error starting server: %s\n", err)
 	}
