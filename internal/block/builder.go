@@ -1,7 +1,9 @@
 package block
 
 import (
-	"fmt"
+	"crypto/rand"
+	"crypto/rsa"
+	"net/url"
 	"time"
 
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
@@ -16,7 +18,9 @@ type BlockBuilder interface {
 }
 
 type SleepBlockBuilder struct {
-	clock helpers.Clock
+	journaller storage.Journaller
+	blocker    *Blocker
+	clock      helpers.Clock
 }
 
 func (builder *SleepBlockBuilder) Start() {
@@ -24,15 +28,21 @@ func (builder *SleepBlockBuilder) Start() {
 }
 
 func (builder *SleepBlockBuilder) Run() {
+	blocktime := builder.clock.Time()
 	timer := builder.clock.After(delay)
+	lastBlock := builder.blocker.Build(blocktime, nil, nil)
 	for {
-		blocktime := <-timer
+		prev := blocktime
+		blocktime = <-timer
 		timer = builder.clock.After(delay)
-		runAt := <-builder.clock.After(pause)
-		fmt.Printf("Building block ending %s at %s\n", blocktime.IsoTime(), runAt.IsoTime())
+		<-builder.clock.After(pause)
+		txs, _ := builder.journaller.ReadTransactionsBetween(prev, blocktime)
+		lastBlock = builder.blocker.Build(blocktime, lastBlock, txs)
 	}
 }
 
 func NewBlockBuilder(clock helpers.Clock, journal storage.Journaller) BlockBuilder {
-	return &SleepBlockBuilder{clock: clock}
+	url, _ := url.Parse("https://node1.com")
+	pk, _ := rsa.GenerateKey(rand.Reader, 16)
+	return &SleepBlockBuilder{clock: clock, journaller: journal, blocker: &Blocker{name: url, pk: pk}}
 }
