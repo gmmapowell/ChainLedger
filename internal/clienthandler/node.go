@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gmmapowell/ChainLedger/internal/block"
 	"github.com/gmmapowell/ChainLedger/internal/config"
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/storage"
@@ -30,7 +31,13 @@ func (node *ListenerNode) Start() {
 	pending := storage.NewMemoryPendingStorage()
 	resolver := NewResolver(&clock, config.NodeKey, pending)
 	journaller := storage.NewJournaller()
+	node.runBlockBuilder(&clock, journaller)
 	node.startAPIListener(resolver, journaller)
+}
+
+func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller) {
+	builder := block.NewBlockBuilder(clock, journaller)
+	builder.Start()
 }
 
 func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage.Journaller) {
