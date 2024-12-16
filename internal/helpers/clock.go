@@ -8,11 +8,13 @@ import (
 
 type Clock interface {
 	Time() types.Timestamp
+	After(d time.Duration) <-chan types.Timestamp
 }
 
 type ClockDouble struct {
-	Times []types.Timestamp
-	next  int
+	Times  []types.Timestamp
+	next   int
+	afters []chan types.Timestamp
 }
 
 func ClockDoubleIsoTimes(isoTimes ...string) ClockDouble {
@@ -48,10 +50,27 @@ func (clock *ClockDouble) Time() types.Timestamp {
 	return r
 }
 
+func (clock *ClockDouble) After(d time.Duration) <-chan types.Timestamp {
+	ret := make(chan types.Timestamp)
+	clock.afters = append(clock.afters, ret)
+	return ret
+}
+
 type ClockLive struct {
 }
 
 func (clock *ClockLive) Time() types.Timestamp {
 	gotime := time.Now().UnixMilli()
 	return types.Timestamp(gotime)
+}
+
+func (clock *ClockLive) After(d time.Duration) <-chan types.Timestamp {
+	ret := make(chan types.Timestamp)
+	mine := time.After(d)
+	go func() {
+		endTime := <-mine
+		ret <- types.Timestamp(endTime.UnixMilli())
+		close(ret)
+	}()
+	return ret
 }
