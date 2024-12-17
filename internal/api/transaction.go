@@ -72,6 +72,12 @@ func (tx *Transaction) addSigner(signer *types.Signatory, err error) error {
 }
 
 func (tx *Transaction) Sign(signerURL *url.URL, pk *rsa.PrivateKey) error {
+	if signerURL == nil {
+		return fmt.Errorf("no signer id provided")
+	}
+	if pk == nil {
+		return fmt.Errorf("no private key provided")
+	}
 	return tx.doSign(signerURL, pk, nil)
 }
 

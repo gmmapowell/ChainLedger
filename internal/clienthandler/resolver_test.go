@@ -17,13 +17,15 @@ import (
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
-var repo client.ClientRepository
+var repo client.MemoryClientRepository
 var nodeKey *rsa.PrivateKey
 var s storage.PendingStorage
 var r clienthandler.Resolver
 
 func setup(clock helpers.Clock) {
 	repo, _ = client.MakeMemoryRepo()
+	repo.NewUser("https://user1.com/")
+	repo.NewUser("https://user2.com/")
 	nodeKey, _ = rsa.GenerateKey(rand.Reader, 2048)
 	s = storage.NewMemoryPendingStorage()
 	r = clienthandler.NewResolver(clock, nodeKey, s)
