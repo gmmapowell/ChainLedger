@@ -38,29 +38,29 @@ func (f *MockHasherFactory) NewHasher() hash.Hash {
 }
 
 type MockHasher struct {
-	t        testing.T
+	t        *testing.T
 	hashesTo string
 	blobs    []byte
 	written  []byte
 }
 
 // BlockSize implements hash.Hash.
-func (m *MockHasher) BlockSize() int {
+func (m MockHasher) BlockSize() int {
 	panic("unimplemented")
 }
 
 // Reset implements hash.Hash.
-func (m *MockHasher) Reset() {
+func (m MockHasher) Reset() {
 	panic("unimplemented")
 }
 
 // Size implements hash.Hash.
-func (m *MockHasher) Size() int {
+func (m MockHasher) Size() int {
 	panic("unimplemented")
 }
 
 // Sum implements hash.Hash.
-func (m *MockHasher) Sum(b []byte) []byte {
+func (m MockHasher) Sum(b []byte) []byte {
 	// This is an implementation detail
 	// and can easily be checked by adding another argument to the constructor
 	if b != nil {
