@@ -16,6 +16,7 @@ func TestBuildingBlock0(t *testing.T) {
 	nodeName, _ := url.Parse("https://node1.com")
 	pk, _ := rsa.GenerateKey(rand.Reader, 32)
 	hasher := helpers.MockHasherFactory{}
+	hasher.AddMock("computed-hash")
 	blocker := block.NewBlocker(&hasher, nodeName, pk)
 	buildTo, _ := types.ParseTimestamp("2024-12-12_18:00:00.000")
 	retHash := types.Hash([]byte("computed-hash"))
@@ -34,6 +35,6 @@ func TestBuildingBlock0(t *testing.T) {
 		t.Fatalf("the computed hash was incorrect")
 	}
 	if !bytes.Equal(block0.Signature, retSig) {
-		t.Fatalf("the computed hash was incorrect")
+		t.Fatalf("the computed signature was incorrect")
 	}
 }

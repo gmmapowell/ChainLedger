@@ -21,6 +21,12 @@ type MockHasherFactory struct {
 	next    int
 }
 
+func (f *MockHasherFactory) AddMock(hashesTo string) MockHasher {
+	ret := MockHasher{hashesTo: hashesTo}
+	f.hashers = append(f.hashers, ret)
+	return ret
+}
+
 func (f *MockHasherFactory) NewHasher() hash.Hash {
 	r := f.hashers[f.next]
 	f.next++
@@ -28,6 +34,7 @@ func (f *MockHasherFactory) NewHasher() hash.Hash {
 }
 
 type MockHasher struct {
+	hashesTo string
 }
 
 // BlockSize implements hash.Hash.
@@ -47,11 +54,15 @@ func (m MockHasher) Size() int {
 
 // Sum implements hash.Hash.
 func (m MockHasher) Sum(b []byte) []byte {
-	panic("unimplemented")
+	// This is an implementation detail
+	// and can easily be checked by adding another argument to the constructor
+	if b != nil {
+		panic("mock always expects final block to be nil")
+	}
+	return []byte(m.hashesTo)
 }
 
 // Write implements hash.Hash.
 func (m MockHasher) Write(p []byte) (n int, err error) {
 	panic("unimplemented")
 }
-
