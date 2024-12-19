@@ -21,12 +21,13 @@ func (f SHA512Factory) NewHasher() hash.Hash {
 }
 
 type MockHasherFactory struct {
+	t       *testing.T
 	hashers []*MockHasher
 	next    int
 }
 
 func (f *MockHasherFactory) AddMock(hashesTo string) *MockHasher {
-	ret := &MockHasher{hashesTo: hashesTo}
+	ret := &MockHasher{t: f.t, hashesTo: hashesTo}
 	f.hashers = append(f.hashers, ret)
 	return ret
 }
@@ -35,6 +36,10 @@ func (f *MockHasherFactory) NewHasher() hash.Hash {
 	r := f.hashers[f.next]
 	f.next++
 	return r
+}
+
+func NewMockHasherFactory(t *testing.T) *MockHasherFactory {
+	return &MockHasherFactory{t: t}
 }
 
 type MockHasher struct {

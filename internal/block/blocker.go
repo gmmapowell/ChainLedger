@@ -12,11 +12,12 @@ import (
 
 type Blocker struct {
 	hasher helpers.HasherFactory
+	signer helpers.Signer
 	name   *url.URL
 	pk     *rsa.PrivateKey
 }
 
-func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.StoredTransaction) *records.Block {
+func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.StoredTransaction) (*records.Block, error) {
 	ls := "<none>"
 	if last != nil {
 		ls = last.String()
@@ -29,15 +30,21 @@ func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.St
 	hasher.Write(to.AsBytes())
 	hash := hasher.Sum(nil)
 
-	return &records.Block{
-		ID:      hash,
-		UpUntil: to,
-		BuiltBy: b.name,
-		PrevID:  nil,
-		Txs:     nil,
+	sig, err := b.signer.Sign(b.pk, (*types.Hash)(&hash))
+	if err != nil {
+		return nil, err
 	}
+
+	return &records.Block{
+		ID:        hash,
+		UpUntil:   to,
+		BuiltBy:   b.name,
+		PrevID:    nil,
+		Txs:       nil,
+		Signature: *sig,
+	}, nil
 }
 
-func NewBlocker(hasher helpers.HasherFactory, name *url.URL, pk *rsa.PrivateKey) *Blocker {
-	return &Blocker{hasher: hasher, name: name, pk: pk}
+func NewBlocker(hasher helpers.HasherFactory, signer helpers.Signer, name *url.URL, pk *rsa.PrivateKey) *Blocker {
+	return &Blocker{hasher: hasher, signer: signer, name: name, pk: pk}
 }
