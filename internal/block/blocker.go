@@ -23,6 +23,9 @@ func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.St
 	}
 	log.Printf("Building block before %s, following %s with %d records\n", to.IsoTime(), ls, len(txs))
 
+	hasher := b.hasher.NewHasher()
+	hasher.Sum(nil)
+
 	return &records.Block{
 		UpUntil: to,
 		BuiltBy: b.name,
