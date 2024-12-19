@@ -5,13 +5,15 @@ import (
 	"log"
 	"net/url"
 
+	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/records"
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
 type Blocker struct {
-	name *url.URL
-	pk   *rsa.PrivateKey
+	hasher helpers.HasherFactory
+	name   *url.URL
+	pk     *rsa.PrivateKey
 }
 
 func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.StoredTransaction) *records.Block {
@@ -29,6 +31,6 @@ func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.St
 	}
 }
 
-func NewBlocker(name *url.URL, pk *rsa.PrivateKey) *Blocker {
-	return &Blocker{name: name, pk: pk}
+func NewBlocker(hasher helpers.HasherFactory, name *url.URL, pk *rsa.PrivateKey) *Blocker {
+	return &Blocker{hasher: hasher, name: name, pk: pk}
 }

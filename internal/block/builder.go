@@ -44,5 +44,7 @@ func (builder *SleepBlockBuilder) Run() {
 func NewBlockBuilder(clock helpers.Clock, journal storage.Journaller) BlockBuilder {
 	url, _ := url.Parse("https://node1.com")
 	pk, _ := rsa.GenerateKey(rand.Reader, 16)
-	return &SleepBlockBuilder{clock: clock, journaller: journal, blocker: &Blocker{name: url, pk: pk}}
+	hf := helpers.SHA512Factory{}
+	blocker := NewBlocker(&hf, url, pk)
+	return &SleepBlockBuilder{clock: clock, journaller: journal, blocker: blocker}
 }

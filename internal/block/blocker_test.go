@@ -8,13 +8,15 @@ import (
 	"testing"
 
 	"github.com/gmmapowell/ChainLedger/internal/block"
+	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
 func TestBuildingBlock0(t *testing.T) {
 	nodeName, _ := url.Parse("https://node1.com")
 	pk, _ := rsa.GenerateKey(rand.Reader, 32)
-	blocker := block.NewBlocker(nodeName, pk)
+	hasher := helpers.MockHasherFactory{}
+	blocker := block.NewBlocker(&hasher, nodeName, pk)
 	buildTo, _ := types.ParseTimestamp("2024-12-12_18:00:00.000")
 	retHash := types.Hash([]byte("computed-hash"))
 	retSig := types.Hash([]byte("signed as"))
