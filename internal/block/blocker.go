@@ -23,3 +23,7 @@ func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.St
 
 	return &records.Block{}
 }
+
+func NewBlocker(name *url.URL, pk *rsa.PrivateKey) *Blocker {
+	return &Blocker{name: name, pk: pk}
+}
