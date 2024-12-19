@@ -21,7 +21,12 @@ func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.St
 	}
 	log.Printf("Building block before %s, following %s with %d records\n", to.IsoTime(), ls, len(txs))
 
-	return &records.Block{}
+	return &records.Block{
+		UpUntil: to,
+		BuiltBy: b.name,
+		PrevID:  nil,
+		Txs:     nil,
+	}
 }
 
 func NewBlocker(name *url.URL, pk *rsa.PrivateKey) *Blocker {
