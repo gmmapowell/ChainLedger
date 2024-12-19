@@ -16,9 +16,11 @@ func TestBuildingBlock0(t *testing.T) {
 	nodeName, _ := url.Parse("https://node1.com")
 	pk, _ := rsa.GenerateKey(rand.Reader, 32)
 	hasher := helpers.MockHasherFactory{}
-	hasher.AddMock("computed-hash")
-	blocker := block.NewBlocker(&hasher, nodeName, pk)
 	buildTo, _ := types.ParseTimestamp("2024-12-12_18:00:00.000")
+	mock1 := hasher.AddMock("computed-hash")
+	mock1.ExpectString(nodeName.String())
+	mock1.ExpectTimestamp(buildTo)
+	blocker := block.NewBlocker(&hasher, nodeName, pk)
 	retHash := types.Hash([]byte("computed-hash"))
 	retSig := types.Hash([]byte("signed as"))
 	block0 := blocker.Build(buildTo, nil, nil)

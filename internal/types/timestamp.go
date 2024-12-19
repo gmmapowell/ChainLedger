@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/binary"
 	"time"
 )
 
@@ -16,6 +17,13 @@ func ParseTimestamp(iso string) (Timestamp, error) {
 	return Timestamp(ts.UnixMilli()), nil
 
 }
+
 func (ts Timestamp) IsoTime() string {
 	return time.UnixMilli(int64(ts)).Format(IsoFormat)
+}
+
+func (ts Timestamp) AsBytes() []byte {
+	var s = make([]byte, 8)
+	binary.LittleEndian.PutUint64(s, uint64(ts))
+	return s
 }
