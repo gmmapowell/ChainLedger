@@ -8,12 +8,7 @@
 		"type": "go",
 		"request": "launch",
 		"mode": "test",
-		"program": "${workspaceFolder}",
-		"args": [
-			"./...",
-			"-test.run",
-			"TestMinimal"
-		]
+		"program": "${workspaceFolder}/internal/block"
 	},
 	{
 		"name": "chainledger",

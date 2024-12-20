@@ -19,12 +19,15 @@ type Blocker struct {
 
 func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.StoredTransaction) (*records.Block, error) {
 	ls := "<none>"
+	var lastID types.Hash
 	if last != nil {
 		ls = last.String()
+		lastID = last.ID
 	}
 	log.Printf("Building block before %s, following %s with %d records\n", to.IsoTime(), ls, len(txs))
 
 	hasher := b.hasher.NewHasher()
+	hasher.Write(lastID)
 	hasher.Write([]byte(b.name.String()))
 	hasher.Write([]byte("\n"))
 	hasher.Write(to.AsBytes())
@@ -39,7 +42,7 @@ func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.St
 		ID:        hash,
 		UpUntil:   to,
 		BuiltBy:   b.name,
-		PrevID:    nil,
+		PrevID:    lastID,
 		Txs:       nil,
 		Signature: *sig,
 	}, nil
