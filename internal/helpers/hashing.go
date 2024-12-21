@@ -91,6 +91,11 @@ func (m *MockHasher) ExpectString(s string) *MockHasher {
 	return m
 }
 
+func (m *MockHasher) ExpectHash(h types.Hash) *MockHasher {
+	m.blobs = append(m.blobs, []byte(h)...)
+	return m
+}
+
 func (m *MockHasher) ExpectTimestamp(ts types.Timestamp) *MockHasher {
 	m.blobs = append(m.blobs, ts.AsBytes()...)
 	return m
