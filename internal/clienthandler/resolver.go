@@ -15,6 +15,8 @@ type Resolver interface {
 
 type TxResolver struct {
 	clock   helpers.Clock
+	hasher  helpers.HasherFactory
+	signer  helpers.Signer
 	nodeKey *rsa.PrivateKey
 	store   storage.PendingStorage
 }
@@ -33,12 +35,12 @@ func (r TxResolver) ResolveTx(tx *api.Transaction) (*records.StoredTransaction, 
 	}
 
 	if complete {
-		return records.CreateStoredTransaction(r.clock, r.nodeKey, curr)
+		return records.CreateStoredTransaction(r.clock, r.hasher, r.signer, r.nodeKey, curr)
 	}
 
 	return nil, nil
 }
 
-func NewResolver(clock helpers.Clock, nodeKey *rsa.PrivateKey, store storage.PendingStorage) Resolver {
-	return &TxResolver{clock: clock, nodeKey: nodeKey, store: store}
+func NewResolver(clock helpers.Clock, hasher helpers.HasherFactory, signer helpers.Signer, nodeKey *rsa.PrivateKey, store storage.PendingStorage) Resolver {
+	return &TxResolver{clock: clock, hasher: hasher, signer: signer, nodeKey: nodeKey, store: store}
 }

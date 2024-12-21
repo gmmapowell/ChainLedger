@@ -2,10 +2,7 @@ package records
 
 import (
 	"bytes"
-	"crypto"
-	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha512"
 	"encoding/binary"
 	"net/url"
 
@@ -20,13 +17,13 @@ type StoredTransaction struct {
 	ContentLink  *url.URL
 	ContentHash  types.Hash
 	Signatories  []*types.Signatory
-	NodeSig      *types.Signature
+	NodeSig      types.Signature
 }
 
-func CreateStoredTransaction(clock helpers.Clock, nodeKey *rsa.PrivateKey, tx *api.Transaction) (*StoredTransaction, error) {
+func CreateStoredTransaction(clock helpers.Clock, hasherFactory helpers.HasherFactory, signer helpers.Signer, nodeKey *rsa.PrivateKey, tx *api.Transaction) (*StoredTransaction, error) {
 	copyLink := *tx.ContentLink
 	ret := StoredTransaction{WhenReceived: clock.Time(), ContentLink: &copyLink, ContentHash: bytes.Clone(tx.ContentHash), Signatories: make([]*types.Signatory, len(tx.Signatories))}
-	hasher := sha512.New()
+	hasher := hasherFactory.NewHasher()
 	binary.Write(hasher, binary.LittleEndian, ret.WhenReceived)
 	hasher.Write([]byte(ret.ContentLink.String()))
 	hasher.Write([]byte("\n"))
@@ -35,19 +32,18 @@ func CreateStoredTransaction(clock helpers.Clock, nodeKey *rsa.PrivateKey, tx *a
 		copySigner := *v.Signer
 		hasher.Write([]byte(copySigner.String()))
 		hasher.Write([]byte("\n"))
-		copySig := types.Signature(bytes.Clone(*v.Signature))
+		copySig := types.Signature(bytes.Clone(v.Signature))
 		hasher.Write(copySig)
-		signatory := types.Signatory{Signer: &copySigner, Signature: &copySig}
+		signatory := types.Signatory{Signer: &copySigner, Signature: copySig}
 		ret.Signatories[i] = &signatory
 	}
 	ret.TxID = hasher.Sum(nil)
 
-	sig, err := rsa.SignPSS(rand.Reader, nodeKey, crypto.SHA512, ret.TxID, nil)
+	sig, err := signer.Sign(nodeKey, ret.TxID)
 	if err != nil {
 		return nil, err
 	}
-	sig1 := types.Signature(sig)
-	ret.NodeSig = &sig1
+	ret.NodeSig = types.Signature(sig)
 
 	return &ret, nil
 }

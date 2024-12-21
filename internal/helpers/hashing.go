@@ -27,12 +27,15 @@ type MockHasherFactory struct {
 }
 
 func (f *MockHasherFactory) AddMock(hashesTo string) *MockHasher {
-	ret := &MockHasher{t: f.t, hashesTo: hashesTo}
+	ret := &MockHasher{t: f.t, hashesTo: hashesTo, accepting: false}
 	f.hashers = append(f.hashers, ret)
 	return ret
 }
 
 func (f *MockHasherFactory) NewHasher() hash.Hash {
+	if f.next >= len(f.hashers) {
+		f.t.Fatalf("The mock hasher does not have %d hashers configured", f.next+1)
+	}
 	r := f.hashers[f.next]
 	f.next++
 	return r
@@ -43,10 +46,11 @@ func NewMockHasherFactory(t *testing.T) *MockHasherFactory {
 }
 
 type MockHasher struct {
-	t        *testing.T
-	hashesTo string
-	blobs    []byte
-	written  []byte
+	t         *testing.T
+	hashesTo  string
+	accepting bool
+	blobs     []byte
+	written   []byte
 }
 
 // BlockSize implements hash.Hash.
@@ -71,7 +75,7 @@ func (m MockHasher) Sum(b []byte) []byte {
 	if b != nil {
 		panic("mock always expects final block to be nil")
 	}
-	if !bytes.Equal(m.blobs, m.written) {
+	if !m.accepting && !bytes.Equal(m.blobs, m.written) {
 		m.t.Log("the written blobs were not the expected blobs")
 		m.t.Logf("expected: %v\n", m.blobs)
 		m.t.Logf("written:  %v\n", m.written)
@@ -86,6 +90,11 @@ func (m *MockHasher) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+func (m *MockHasher) AcceptAnything() *MockHasher {
+	m.accepting = true
+	return m
+}
+
 func (m *MockHasher) ExpectString(s string) *MockHasher {
 	m.blobs = append(m.blobs, []byte(s)...)
 	return m
@@ -93,6 +102,11 @@ func (m *MockHasher) ExpectString(s string) *MockHasher {
 
 func (m *MockHasher) ExpectHash(h types.Hash) *MockHasher {
 	m.blobs = append(m.blobs, []byte(h)...)
+	return m
+}
+
+func (m *MockHasher) ExpectSignature(s types.Signature) *MockHasher {
+	m.blobs = append(m.blobs, []byte(s)...)
 	return m
 }
 

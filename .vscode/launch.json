@@ -4,11 +4,24 @@
 	// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
 	"version": "0.2.0",
 	"configurations": [{
-		"name": "test",
+		"name": "test api",
+		"type": "go",
+		"request": "launch",
+		"mode": "test",
+		"program": "${workspaceFolder}/internal/api"
+	},{
+		"name": "test blocking",
 		"type": "go",
 		"request": "launch",
 		"mode": "test",
 		"program": "${workspaceFolder}/internal/block"
+	},
+	{
+		"name": "test clienthandler",
+		"type": "go",
+		"request": "launch",
+		"mode": "test",
+		"program": "${workspaceFolder}/internal/clienthandler"
 	},
 	{
 		"name": "chainledger",

@@ -113,14 +113,13 @@ func (tx *Transaction) makeSignableHash() (hash.Hash, error) {
 	return h, nil
 }
 
-func makeSignature(pk *rsa.PrivateKey, h hash.Hash) (*types.Signature, error) {
+func makeSignature(pk *rsa.PrivateKey, h hash.Hash) (types.Signature, error) {
 	sum := h.Sum(nil)
 	sig, err := rsa.SignPSS(rand.Reader, pk, crypto.SHA512, sum, nil)
 	if err != nil {
 		return nil, err
 	}
-	var ret types.Signature = sig
-	return &ret, nil
+	return sig, nil
 }
 
 func (tx *Transaction) JsonReader() (io.Reader, error) {

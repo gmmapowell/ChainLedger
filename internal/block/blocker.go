@@ -36,7 +36,7 @@ func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.St
 	}
 	hash := hasher.Sum(nil)
 
-	sig, err := b.signer.Sign(b.pk, (*types.Hash)(&hash))
+	sig, err := b.signer.Sign(b.pk, types.Hash(hash))
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.St
 		BuiltBy:   b.name,
 		PrevID:    lastID,
 		Txs:       nil,
-		Signature: *sig,
+		Signature: sig,
 	}, nil
 }
 
