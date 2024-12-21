@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/gmmapowell/ChainLedger/internal/block"
 	"github.com/gmmapowell/ChainLedger/internal/config"
@@ -17,6 +18,7 @@ type Node interface {
 }
 
 type ListenerNode struct {
+	name *url.URL
 	addr string
 }
 
@@ -25,7 +27,7 @@ func (node *ListenerNode) Start() {
 	clock := &helpers.ClockLive{}
 	hasher := &helpers.SHA512Factory{}
 	signer := &helpers.RSASigner{}
-	config, err := config.ReadNodeConfig()
+	config, err := config.ReadNodeConfig(node.name, node.addr)
 	if err != nil {
 		fmt.Printf("error reading config: %s\n", err)
 		return
@@ -33,12 +35,12 @@ func (node *ListenerNode) Start() {
 	pending := storage.NewMemoryPendingStorage()
 	resolver := NewResolver(clock, hasher, signer, config.NodeKey, pending)
 	journaller := storage.NewJournaller()
-	node.runBlockBuilder(clock, journaller)
+	node.runBlockBuilder(clock, journaller, config)
 	node.startAPIListener(resolver, journaller)
 }
 
-func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller) {
-	builder := block.NewBlockBuilder(clock, journaller)
+func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config *config.NodeConfig) {
+	builder := block.NewBlockBuilder(clock, journaller, config.Name, config.NodeKey)
 	builder.Start()
 }
 
@@ -54,6 +56,6 @@ func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage
 	}
 }
 
-func NewListenerNode(addr string) Node {
-	return &ListenerNode{addr}
+func NewListenerNode(name *url.URL, addr string) Node {
+	return &ListenerNode{name, addr}
 }
