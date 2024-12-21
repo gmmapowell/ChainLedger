@@ -18,8 +18,9 @@ var pk *rsa.PrivateKey
 var hasher *helpers.MockHasherFactory
 var buildTo types.Timestamp
 var mock1 *helpers.MockHasher
-var signer helpers.MockSigner
-var retHash, retSig, prevID types.Hash
+var signer *helpers.MockSigner
+var retHash, prevID types.Hash
+var retSig types.Signature
 var blocker *block.Blocker
 
 func setup(t *testing.T) {
@@ -30,12 +31,12 @@ func setup(t *testing.T) {
 	mock1 = hasher.AddMock("computed-hash")
 	mock1.ExpectString(nodeName.String() + "\n")
 	mock1.ExpectTimestamp(buildTo)
-	signer = helpers.MockSigner{}
+	signer = helpers.NewMockSigner(t)
 	prevID = types.Hash([]byte("previous-block"))
 	retHash = types.Hash([]byte("computed-hash"))
-	retSig = types.Hash([]byte("signed as"))
+	retSig = types.Signature([]byte("signed as"))
 	signer.Expect(retSig, pk, retHash)
-	blocker = block.NewBlocker(hasher, &signer, nodeName, pk)
+	blocker = block.NewBlocker(hasher, signer, nodeName, pk)
 
 }
 

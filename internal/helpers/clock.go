@@ -17,28 +17,28 @@ type ClockDouble struct {
 	afters []chan types.Timestamp
 }
 
-func ClockDoubleIsoTimes(isoTimes ...string) ClockDouble {
+func ClockDoubleIsoTimes(isoTimes ...string) *ClockDouble {
 	ts := make([]types.Timestamp, len(isoTimes))
 	for i, s := range isoTimes {
 		ts[i], _ = types.ParseTimestamp(s)
 	}
-	return ClockDouble{Times: ts, next: 0}
+	return &ClockDouble{Times: ts, next: 0}
 }
 
-func ClockDoubleSameDay(isoDate string, times ...string) ClockDouble {
+func ClockDoubleSameDay(isoDate string, times ...string) *ClockDouble {
 	ts := make([]types.Timestamp, len(times))
 	for i, s := range times {
 		ts[i], _ = types.ParseTimestamp(isoDate + "_" + s)
 	}
-	return ClockDouble{Times: ts, next: 0}
+	return &ClockDouble{Times: ts, next: 0}
 }
 
-func ClockDoubleSameMinute(isoDateHM string, seconds ...string) ClockDouble {
+func ClockDoubleSameMinute(isoDateHM string, seconds ...string) *ClockDouble {
 	ts := make([]types.Timestamp, len(seconds))
 	for i, s := range seconds {
 		ts[i], _ = types.ParseTimestamp(isoDateHM + ":" + s)
 	}
-	return ClockDouble{Times: ts, next: 0}
+	return &ClockDouble{Times: ts, next: 0}
 }
 
 func (clock *ClockDouble) Time() types.Timestamp {

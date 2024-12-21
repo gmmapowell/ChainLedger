@@ -7,7 +7,7 @@ import (
 
 type Signatory struct {
 	Signer    *url.URL
-	Signature *Signature
+	Signature Signature
 }
 
 func OtherSignerURL(u *url.URL) (*Signatory, error) {
@@ -32,7 +32,7 @@ func (sig Signatory) MarshalJSON() ([]byte, error) {
 func (sig *Signatory) UnmarshalJSON(bs []byte) error {
 	var wire struct {
 		Signer    string
-		Signature *Signature
+		Signature Signature
 	}
 	if err := json.Unmarshal(bs, &wire); err != nil {
 		return err
