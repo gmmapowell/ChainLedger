@@ -17,18 +17,22 @@ import (
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
+var hasher *helpers.MockHasherFactory
+var signer *helpers.MockSigner
 var repo client.MemoryClientRepository
 var nodeKey *rsa.PrivateKey
 var s storage.PendingStorage
 var r clienthandler.Resolver
 
-func setup(clock helpers.Clock) {
+func setup(t *testing.T, clock helpers.Clock) {
+	hasher = helpers.NewMockHasherFactory(t)
+	signer = helpers.NewMockSigner(t)
 	repo, _ = client.MakeMemoryRepo()
 	repo.NewUser("https://user1.com/")
 	repo.NewUser("https://user2.com/")
 	nodeKey, _ = rsa.GenerateKey(rand.Reader, 2048)
 	s = storage.NewMemoryPendingStorage()
-	r = clienthandler.NewResolver(clock, nodeKey, s)
+	r = clienthandler.NewResolver(clock, hasher, signer, nodeKey, s)
 }
 
 func maketx(link string, hash string, userkeys ...any) *api.Transaction {
@@ -47,7 +51,7 @@ func maketx(link string, hash string, userkeys ...any) *api.Transaction {
 }
 
 func TestANewTransactionMayBeStoredButReturnsNothing(t *testing.T) {
-	setup(nil)
+	setup(t, nil)
 	tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 	stx, err := r.ResolveTx(tx)
 	checkNotReturned(t, stx, err)
@@ -55,23 +59,34 @@ func TestANewTransactionMayBeStoredButReturnsNothing(t *testing.T) {
 
 func TestTwoCopiesOfTheTransactionAreEnoughToContinue(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
-	setup(&clock)
+	setup(t, clock)
+	h1 := hasher.AddMock("fred")
+	h1.ExpectTimestamp(clock.Times[0])
+	h1.ExpectString("https://test.com/msg1\n")
+	h1.ExpectString("hash")
 	{
 		tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
+		h1.ExpectString(("https://user1.com/\n"))
+		h1.ExpectSignature(tx.Signatories[0].Signature)
 		stx, err := r.ResolveTx(tx)
 		checkNotReturned(t, stx, err)
 	}
 	{
 		tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", "https://user2.com/", true)
-		stx, _ := r.ResolveTx(tx)
-		if stx == nil {
+		h1.ExpectString(("https://user2.com/\n"))
+		h1.ExpectSignature(tx.Signatories[1].Signature)
+		signer.Expect(types.Signature("tx-sig"), nodeKey, types.Hash("fred"))
+		stx, err := r.ResolveTx(tx)
+		if err != nil {
+			t.Fatalf("error on resolution: %v\n", err)
+		} else if stx == nil {
 			t.Fatalf("a stored transaction was not returned after both parties had submitted a signed copy")
 		}
 	}
 }
 
 func TestTwoIndependentTxsCanExistAtOnce(t *testing.T) {
-	setup(nil)
+	setup(t, nil)
 	{
 		tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 		stx, err := r.ResolveTx(tx)
@@ -86,10 +101,19 @@ func TestTwoIndependentTxsCanExistAtOnce(t *testing.T) {
 
 func TestTheReturnedTxHasAllTheFields(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
-	setup(&clock)
+	setup(t, clock)
+	h1 := hasher.AddMock("fred")
+	h1.ExpectTimestamp(clock.Times[0])
+	h1.ExpectString("https://test.com/msg1\n")
+	h1.ExpectString("hash")
 	tx1 := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
+	h1.ExpectString(("https://user1.com/\n"))
+	h1.ExpectSignature(tx1.Signatories[0].Signature)
 	r.ResolveTx(tx1)
 	tx2 := maketx("https://test.com/msg1", "hash", "https://user1.com/", "https://user2.com/", true)
+	h1.ExpectString(("https://user2.com/\n"))
+	h1.ExpectSignature(tx2.Signatories[1].Signature)
+	signer.Expect(types.Signature("tx-sig"), nodeKey, types.Hash("fred"))
 	stx, _ := r.ResolveTx(tx2)
 	if stx == nil {
 		t.Fatalf("a stored transaction was not returned after both parties had submitted a signed copy")
@@ -112,10 +136,13 @@ func TestTheReturnedTxHasAllTheFields(t *testing.T) {
 
 func TestTheReturnedTxHasATimestamp(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
-	setup(&clock)
+	setup(t, clock)
+	h1 := hasher.AddMock("fred")
+	h1.AcceptAnything()
 	tx1 := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 	r.ResolveTx(tx1)
 	tx2 := maketx("https://test.com/msg1", "hash", "https://user1.com/", "https://user2.com/", true)
+	signer.SignAnythingAs("hello")
 	stx, _ := r.ResolveTx(tx2)
 	if stx == nil {
 		t.Fatalf("a stored transaction was not returned after both parties had submitted a signed copy")
@@ -130,13 +157,13 @@ func TestTheReturnedTxHasATimestamp(t *testing.T) {
 
 func TestTheReturnedTxIsSigned(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
-	setup(&clock)
+	setup(t, clock)
 	tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/", true)
-	stx, _ := records.CreateStoredTransaction(&clock, nodeKey, tx)
+	stx, _ := records.CreateStoredTransaction(clock, &helpers.SHA512Factory{}, helpers.RSASigner{}, nodeKey, tx)
 	if stx.NodeSig == nil {
 		t.Fatalf("the stored transaction was not signed")
 	}
-	err := rsa.VerifyPSS(&nodeKey.PublicKey, crypto.SHA512, stx.TxID, *stx.NodeSig, nil)
+	err := rsa.VerifyPSS(&nodeKey.PublicKey, crypto.SHA512, stx.TxID, stx.NodeSig, nil)
 	if err != nil {
 		t.Fatalf("signature verification failed")
 	}
@@ -157,7 +184,7 @@ func checkSignature(t *testing.T, which int, blockA []*types.Signatory, blockB [
 	if sigA.Signer.String() != sigB.Signer.String() {
 		t.Fatalf("Signer for %d did not match: %s not %s", which, sigA.Signer.String(), sigB.Signer.String())
 	}
-	if !bytes.Equal(*sigA.Signature, *sigB.Signature) {
+	if !bytes.Equal(sigA.Signature, sigB.Signature) {
 		t.Fatalf("Signature for %d did not match: %x not %x", which, sigA.Signature, sigB.Signature)
 	}
 }
