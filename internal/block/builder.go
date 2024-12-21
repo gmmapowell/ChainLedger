@@ -1,7 +1,6 @@
 package block
 
 import (
-	"crypto/rand"
 	"crypto/rsa"
 	"net/url"
 	"time"
@@ -47,9 +46,7 @@ func (builder *SleepBlockBuilder) Run() {
 	}
 }
 
-func NewBlockBuilder(clock helpers.Clock, journal storage.Journaller) BlockBuilder {
-	url, _ := url.Parse("https://node1.com")
-	pk, _ := rsa.GenerateKey(rand.Reader, 16)
+func NewBlockBuilder(clock helpers.Clock, journal storage.Journaller, url *url.URL, pk *rsa.PrivateKey) BlockBuilder {
 	hf := helpers.SHA512Factory{}
 	sf := helpers.RSASigner{}
 	blocker := NewBlocker(&hf, &sf, url, pk)
