@@ -4,25 +4,27 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+
+	"github.com/gmmapowell/ChainLedger/internal/config"
 )
 
 type Config interface {
-	NodeEndpoints() []string
-	ClientsPerNode() map[string][]CliConfig
+	Nodes() []*config.NodeConfig
+	ClientsPerNode() map[string][]*CliConfig
 }
 
 type HarnessConfig struct {
-	Nodes   []string
-	Clients map[string][]CliConfig
+	NodeList []*config.NodeConfig `json:"nodes"`
+	Clients  map[string][]*CliConfig
 }
 
 // NodeEndpoints implements Config.
-func (c *HarnessConfig) NodeEndpoints() []string {
-	return c.Nodes
+func (c *HarnessConfig) Nodes() []*config.NodeConfig {
+	return c.NodeList
 }
 
 // ClientsPerNode implements Config.
-func (c *HarnessConfig) ClientsPerNode() map[string][]CliConfig {
+func (c *HarnessConfig) ClientsPerNode() map[string][]*CliConfig {
 	return c.Clients
 }
 

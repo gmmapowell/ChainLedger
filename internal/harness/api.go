@@ -9,8 +9,8 @@ import (
 
 // Start the nodes
 func StartNodes(c Config) {
-	for _, ep := range c.NodeEndpoints() {
-		node := clienthandler.NewListenerNode(ep)
+	for _, n := range c.Nodes() {
+		node := clienthandler.NewListenerNode(n.Name, n.ListenOn)
 		go node.Start()
 	}
 }
@@ -68,7 +68,7 @@ func PrepareClients(c Config) []Client {
 }
 
 // Find all the users in a list of clients associated with a given node
-func usersOnNode(clis []CliConfig) []string {
+func usersOnNode(clis []*CliConfig) []string {
 	ret := make([]string, 0)
 	for _, c := range clis {
 		if slices.Index(ret, c.Client) == -1 {

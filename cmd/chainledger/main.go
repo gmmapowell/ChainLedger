@@ -1,10 +1,13 @@
 package main
 
 import (
+	"net/url"
+
 	"github.com/gmmapowell/ChainLedger/internal/clienthandler"
 )
 
 func main() {
-	node := clienthandler.NewListenerNode(":5001")
+	url, _ := url.Parse("https://localhost:5001")
+	node := clienthandler.NewListenerNode(url, ":5001")
 	node.Start()
 }
