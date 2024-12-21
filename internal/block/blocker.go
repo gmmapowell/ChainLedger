@@ -31,6 +31,9 @@ func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.St
 	hasher.Write([]byte(b.name.String()))
 	hasher.Write([]byte("\n"))
 	hasher.Write(to.AsBytes())
+	for _, m := range txs {
+		hasher.Write(m.TxID)
+	}
 	hash := hasher.Sum(nil)
 
 	sig, err := b.signer.Sign(b.pk, (*types.Hash)(&hash))

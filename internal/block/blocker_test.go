@@ -85,3 +85,37 @@ func TestBuildingSubsequentBlockWithNoMessages(t *testing.T) {
 		t.Fatalf("the computed signature was incorrect")
 	}
 }
+
+func TestBuildingSubsequentBlockWithTwoMessages(t *testing.T) {
+	setup(t)
+	mock1.ExpectString(string(prevID))
+	mock1.ExpectString(nodeName.String() + "\n")
+	mock1.ExpectTimestamp(buildTo)
+
+	prev := records.Block{ID: prevID}
+	m1id := types.Hash([]byte("msg1"))
+	m2id := types.Hash([]byte("msg2"))
+	mock1.ExpectHash(m1id)
+	mock1.ExpectHash(m2id)
+
+	msg1 := records.StoredTransaction{TxID: m1id}
+	msg2 := records.StoredTransaction{TxID: m2id}
+	block0, _ := blocker.Build(buildTo, &prev, []records.StoredTransaction{msg1, msg2})
+	if !bytes.Equal(block0.PrevID, prevID) {
+		t.Fatalf("Block1 should have a previous block id %v, not %v", prevID, block0.PrevID)
+	}
+	if block0.UpUntil != buildTo {
+		t.Fatalf("the stored block time was not correct")
+	}
+	if len(block0.Txs) != 0 {
+		t.Fatalf("Block0 should not have any messages")
+	}
+	if !bytes.Equal(block0.ID, retHash) {
+		t.Fatalf("the computed hash was incorrect")
+	}
+	if !bytes.Equal(block0.Signature, retSig) {
+		t.Logf("expected sig: %v\n", retSig)
+		t.Logf("actual sig:   %v\n", block0.Signature)
+		t.Fatalf("the computed signature was incorrect")
+	}
+}
