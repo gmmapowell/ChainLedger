@@ -17,7 +17,7 @@ func main() {
 	log.Println("starting harness")
 
 	config := harness.ReadConfig(os.Args[1])
-	harness.StartNodes(config)
+	nodes := harness.StartNodes(config)
 	clients := harness.PrepareClients(config)
 
 	startedAt := time.Now().UnixMilli()
@@ -28,6 +28,10 @@ func main() {
 
 	for _, c := range clients {
 		c.WaitFor()
+	}
+
+	for _, n := range nodes {
+		n.Terminate()
 	}
 
 	endedAt := time.Now().UnixMilli()

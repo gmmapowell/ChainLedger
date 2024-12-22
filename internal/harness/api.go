@@ -8,11 +8,14 @@ import (
 )
 
 // Start the nodes
-func StartNodes(c Config) {
+func StartNodes(c Config) []clienthandler.Node {
+	var nodes []clienthandler.Node
 	for _, n := range c.Nodes() {
 		node := clienthandler.NewListenerNode(n.Name, n.ListenOn)
+		nodes = append(nodes, node)
 		go node.Start()
 	}
+	return nodes
 }
 
 // Build up the list of all the clients

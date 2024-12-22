@@ -1,6 +1,7 @@
 package clienthandler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -11,15 +12,19 @@ import (
 	"github.com/gmmapowell/ChainLedger/internal/config"
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/storage"
+	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
 type Node interface {
 	Start()
+	Terminate()
 }
 
 type ListenerNode struct {
-	name *url.URL
-	addr string
+	name    *url.URL
+	addr    string
+	Control types.PingBack
+	server  *http.Server
 }
 
 func (node *ListenerNode) Start() {
@@ -39,8 +44,16 @@ func (node *ListenerNode) Start() {
 	node.startAPIListener(resolver, journaller)
 }
 
+func (node *ListenerNode) Terminate() {
+	node.server.Shutdown(context.Background())
+	waitChan := make(types.Signal)
+	node.Control <- waitChan.Sender()
+	<-waitChan
+	log.Printf("node %s finished\n", node.name)
+}
+
 func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config *config.NodeConfig) {
-	builder := block.NewBlockBuilder(clock, journaller, config.Name, config.NodeKey)
+	builder := block.NewBlockBuilder(clock, journaller, config.Name, config.NodeKey, node.Control)
 	builder.Start()
 }
 
@@ -50,12 +63,13 @@ func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage
 	cliapi.Handle("/ping", pingMe)
 	storeRecord := NewRecordStorage(resolver, journaller)
 	cliapi.Handle("/store", storeRecord)
-	err := http.ListenAndServe(node.addr, cliapi)
+	node.server = &http.Server{Addr: node.addr, Handler: cliapi}
+	err := node.server.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("error starting server: %s\n", err)
 	}
 }
 
 func NewListenerNode(name *url.URL, addr string) Node {
-	return &ListenerNode{name: name, addr: addr}
+	return &ListenerNode{name: name, addr: addr, Control: make(types.PingBack)}
 }
