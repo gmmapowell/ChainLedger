@@ -17,7 +17,7 @@ type Blocker struct {
 	pk     *rsa.PrivateKey
 }
 
-func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []records.StoredTransaction) (*records.Block, error) {
+func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []*records.StoredTransaction) (*records.Block, error) {
 	ls := "<none>"
 	var lastID types.Hash
 	if last != nil {

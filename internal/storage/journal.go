@@ -9,7 +9,7 @@ import (
 
 type Journaller interface {
 	RecordTx(tx *records.StoredTransaction) error
-	ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]records.StoredTransaction, error)
+	ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error)
 }
 
 type DummyJournaller struct {
@@ -21,7 +21,7 @@ func (d *DummyJournaller) RecordTx(tx *records.StoredTransaction) error {
 	return nil
 }
 
-func (d DummyJournaller) ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]records.StoredTransaction, error) {
+func (d DummyJournaller) ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error) {
 	return nil, nil
 }
 
@@ -37,8 +37,14 @@ func (d *MemoryJournaller) RecordTx(tx *records.StoredTransaction) error {
 	return nil
 }
 
-func (d MemoryJournaller) ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]records.StoredTransaction, error) {
-	return nil, nil
+func (d MemoryJournaller) ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error) {
+	var ret []*records.StoredTransaction
+	for _, tx := range d.txs {
+		if tx.WhenReceived >= from && tx.WhenReceived < upto {
+			ret = append(ret, tx)
+		}
+	}
+	return ret, nil
 }
 
 func NewJournaller(name string) Journaller {
