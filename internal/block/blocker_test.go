@@ -97,7 +97,7 @@ func TestBuildingSubsequentBlockWithTwoMessages(t *testing.T) {
 
 	msg1 := records.StoredTransaction{TxID: m1id}
 	msg2 := records.StoredTransaction{TxID: m2id}
-	block0, _ := blocker.Build(buildTo, &prev, []records.StoredTransaction{msg1, msg2})
+	block0, _ := blocker.Build(buildTo, &prev, []*records.StoredTransaction{&msg1, &msg2})
 	if !bytes.Equal(block0.PrevID, prevID) {
 		t.Fatalf("Block1 should have a previous block id %v, not %v", prevID, block0.PrevID)
 	}
