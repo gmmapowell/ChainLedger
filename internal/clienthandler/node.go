@@ -23,7 +23,7 @@ type ListenerNode struct {
 }
 
 func (node *ListenerNode) Start() {
-	log.Println("starting chainledger node")
+	log.Printf("starting chainledger node %s\n", node.name)
 	clock := &helpers.ClockLive{}
 	hasher := &helpers.SHA512Factory{}
 	signer := &helpers.RSASigner{}
@@ -34,7 +34,7 @@ func (node *ListenerNode) Start() {
 	}
 	pending := storage.NewMemoryPendingStorage()
 	resolver := NewResolver(clock, hasher, signer, config.NodeKey, pending)
-	journaller := storage.NewJournaller()
+	journaller := storage.NewJournaller(node.name.String())
 	node.runBlockBuilder(clock, journaller, config)
 	node.startAPIListener(resolver, journaller)
 }
@@ -57,5 +57,5 @@ func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage
 }
 
 func NewListenerNode(name *url.URL, addr string) Node {
-	return &ListenerNode{name, addr}
+	return &ListenerNode{name: name, addr: addr}
 }

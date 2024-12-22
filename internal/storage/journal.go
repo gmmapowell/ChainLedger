@@ -25,6 +25,22 @@ func (d DummyJournaller) ReadTransactionsBetween(from types.Timestamp, upto type
 	return nil, nil
 }
 
-func NewJournaller() Journaller {
-	return &DummyJournaller{}
+type MemoryJournaller struct {
+	name string
+	txs  []*records.StoredTransaction
+}
+
+// RecordTx implements Journaller.
+func (d *MemoryJournaller) RecordTx(tx *records.StoredTransaction) error {
+	d.txs = append(d.txs, tx)
+	fmt.Printf("%s recording tx with id %v, have %d\n", d.name, tx.TxID, len(d.txs))
+	return nil
+}
+
+func (d MemoryJournaller) ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]records.StoredTransaction, error) {
+	return nil, nil
+}
+
+func NewJournaller(name string) Journaller {
+	return &MemoryJournaller{name: name}
 }
