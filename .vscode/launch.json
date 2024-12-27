@@ -24,6 +24,13 @@
 		"program": "${workspaceFolder}/internal/clienthandler"
 	},
 	{
+		"name": "test storage",
+		"type": "go",
+		"request": "launch",
+		"mode": "test",
+		"program": "${workspaceFolder}/internal/storage"
+	},
+	{
 		"name": "chainledger",
 		"type": "go",
 		"request": "launch",
