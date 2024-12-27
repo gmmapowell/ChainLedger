@@ -26,7 +26,7 @@ func (r TxResolver) ResolveTx(tx *api.Transaction) (*records.StoredTransaction, 
 	complete := true
 	for i, v := range tx.Signatories {
 		if v.Signature != nil && curr != nil {
-			curr.Signatories[i] = v
+			curr.Signatories[i].Signature = v.Signature
 		} else if v.Signature == nil {
 			if curr == nil || curr.Signatories[i].Signature == nil {
 				complete = false
