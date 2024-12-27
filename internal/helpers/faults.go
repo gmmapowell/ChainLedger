@@ -68,3 +68,24 @@ func (t *TestingFaultInjection) NextWaiter() {
 func FaultInjectionLibrary(t *testing.T) FaultInjection {
 	return &TestingFaultInjection{t: t, allocations: make(chan PairedWaiter, 10)}
 }
+
+type InactiveFaultInjection struct{}
+
+// AllocatedWaiter implements FaultInjection.
+func (i *InactiveFaultInjection) AllocatedWaiter() PairedWaiter {
+	panic("this should only be called from test methods, I think")
+}
+
+// AllocatedWaiterOrNil implements FaultInjection.
+func (i *InactiveFaultInjection) AllocatedWaiterOrNil(waitFor time.Duration) PairedWaiter {
+	panic("this should only be called from test methods, I think")
+}
+
+// NextWaiter implements FaultInjection.
+func (i *InactiveFaultInjection) NextWaiter() {
+}
+
+func IgnoreFaultInjection() FaultInjection {
+	return &InactiveFaultInjection{}
+
+}

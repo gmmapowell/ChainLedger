@@ -29,7 +29,7 @@ func (mps *MemoryPendingStorage) PendingTx(tx *api.Transaction) *api.Transaction
 }
 
 func NewMemoryPendingStorage() PendingStorage {
-	return TestMemoryPendingStorage(nil)
+	return TestMemoryPendingStorage(helpers.IgnoreFaultInjection())
 }
 
 func TestMemoryPendingStorage(finj helpers.FaultInjection) PendingStorage {
