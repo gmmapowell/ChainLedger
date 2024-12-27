@@ -1,7 +1,10 @@
 package storage
 
 import (
+	"sync"
+
 	"github.com/gmmapowell/ChainLedger/internal/api"
+	"github.com/gmmapowell/ChainLedger/internal/helpers"
 )
 
 type PendingStorage interface {
@@ -9,11 +12,14 @@ type PendingStorage interface {
 }
 
 type MemoryPendingStorage struct {
+	mu    sync.Mutex
 	store map[string]*api.Transaction
+	finj  helpers.FaultInjection
 }
 
-func (mps MemoryPendingStorage) PendingTx(tx *api.Transaction) *api.Transaction {
+func (mps *MemoryPendingStorage) PendingTx(tx *api.Transaction) *api.Transaction {
 	curr := mps.store[string(tx.ID())]
+	mps.finj.NextWaiter()
 	if curr == nil {
 		mps.store[string(tx.ID())] = tx
 	}
@@ -21,5 +27,9 @@ func (mps MemoryPendingStorage) PendingTx(tx *api.Transaction) *api.Transaction 
 }
 
 func NewMemoryPendingStorage() PendingStorage {
-	return &MemoryPendingStorage{store: make(map[string]*api.Transaction)}
+	return TestMemoryPendingStorage(nil)
+}
+
+func TestMemoryPendingStorage(finj helpers.FaultInjection) PendingStorage {
+	return &MemoryPendingStorage{store: make(map[string]*api.Transaction), finj: finj}
 }
