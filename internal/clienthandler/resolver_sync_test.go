@@ -30,13 +30,17 @@ func TestThatTwoThreadsCanSignDifferentFieldsAtTheSameTime(t *testing.T) {
 	}()
 	s1 := cc.Recv()
 	s2 := cc.Recv()
-	if s1 == nil && s2 == nil {
+	tx1 := s1.(*records.StoredTransaction)
+	tx2 := s2.(*records.StoredTransaction)
+	if tx1 == nil && tx2 == nil {
 		t.Fatalf("both transactions were nil")
 	}
-	if s1 != nil && s2 != nil {
-		t.Fatalf("both transactions were NOT nil: %v %v", s1, s2)
+	if tx1 != nil && tx2 != nil {
+		t.Fatalf("both transactions were NOT nil: %v %v", tx1, tx2)
 	}
-	tx1 := s1.(records.StoredTransaction)
+	if tx1 == nil {
+		tx1 = tx2
+	}
 	if tx1.Signatories[0].Signature == nil {
 		t.Fatalf("the first signature is missing")
 	}
