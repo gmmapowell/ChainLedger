@@ -5,12 +5,19 @@ import (
 
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/records"
+	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
 func TestThatTwoThreadsCanSignDifferentFieldsAtTheSameTime(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
 	cc := helpers.NewChanCollector(t, 2)
 	setup(cc, clock)
+
+	h1 := hasher.AddMock("fred")
+	h1.AcceptAnything()
+
+	signer.Expect(types.Signature("tx-sig"), nodeKey, types.Hash("fred"))
+
 	go func() {
 		tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 		stx, _ := r.ResolveTx(tx)
@@ -23,8 +30,11 @@ func TestThatTwoThreadsCanSignDifferentFieldsAtTheSameTime(t *testing.T) {
 	}()
 	s1 := cc.Recv()
 	s2 := cc.Recv()
-	if s1 != s2 {
-		t.Fatalf("The two transactions were not the same")
+	if s1 == nil && s2 == nil {
+		t.Fatalf("both transactions were nil")
+	}
+	if s1 != nil && s2 != nil {
+		t.Fatalf("both transactions were NOT nil: %v %v", s1, s2)
 	}
 	tx1 := s1.(records.StoredTransaction)
 	if tx1.Signatories[0].Signature == nil {

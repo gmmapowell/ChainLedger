@@ -47,6 +47,7 @@ func (f *MockSigner) SignAnythingAs(sig string) {
 func (f *MockSigner) Sign(pk *rsa.PrivateKey, hash types.Hash) (types.Signature, error) {
 	if f.next >= len(f.sigs) {
 		f.t.Fatalf("there are not %d signers configured", f.next+1)
+		panic("there are no signatures")
 	}
 	r := f.sigs[f.next]
 	if !r.accept {
