@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha512"
 	"hash"
-	"testing"
 
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
@@ -21,7 +20,7 @@ func (f SHA512Factory) NewHasher() hash.Hash {
 }
 
 type MockHasherFactory struct {
-	t       *testing.T
+	t       Fatals
 	hashers []*MockHasher
 	next    int
 }
@@ -35,18 +34,19 @@ func (f *MockHasherFactory) AddMock(hashesTo string) *MockHasher {
 func (f *MockHasherFactory) NewHasher() hash.Hash {
 	if f.next >= len(f.hashers) {
 		f.t.Fatalf("The mock hasher does not have %d hashers configured", f.next+1)
+		panic("not enough hashers")
 	}
 	r := f.hashers[f.next]
 	f.next++
 	return r
 }
 
-func NewMockHasherFactory(t *testing.T) *MockHasherFactory {
+func NewMockHasherFactory(t Fatals) *MockHasherFactory {
 	return &MockHasherFactory{t: t}
 }
 
 type MockHasher struct {
-	t         *testing.T
+	t         Fatals
 	hashesTo  string
 	accepting bool
 	blobs     []byte
