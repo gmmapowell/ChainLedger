@@ -24,7 +24,7 @@ var nodeKey *rsa.PrivateKey
 var s storage.PendingStorage
 var r clienthandler.Resolver
 
-func setup(t *testing.T, clock helpers.Clock) {
+func setup(t helpers.Fatals, clock helpers.Clock) {
 	hasher = helpers.NewMockHasherFactory(t)
 	signer = helpers.NewMockSigner(t)
 	repo, _ = client.MakeMemoryRepo()

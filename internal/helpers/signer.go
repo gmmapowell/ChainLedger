@@ -5,7 +5,6 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"testing"
 
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
@@ -26,12 +25,12 @@ func (s RSASigner) Sign(pk *rsa.PrivateKey, hash types.Hash) (types.Signature, e
 }
 
 type MockSigner struct {
-	t    *testing.T
+	t    Fatals
 	sigs []*MockExpectedSig
 	next int
 }
 
-func NewMockSigner(t *testing.T) *MockSigner {
+func NewMockSigner(t Fatals) *MockSigner {
 	return &MockSigner{t: t}
 }
 
@@ -65,7 +64,7 @@ func (f *MockSigner) Sign(pk *rsa.PrivateKey, hash types.Hash) (types.Signature,
 }
 
 type MockExpectedSig struct {
-	t         *testing.T
+	t         Fatals
 	pk        *rsa.PrivateKey
 	hash      types.Hash
 	signature types.Signature
