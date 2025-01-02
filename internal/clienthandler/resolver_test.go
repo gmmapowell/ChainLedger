@@ -175,6 +175,19 @@ func TestTheReturnedTxIsSigned(t *testing.T) {
 	}
 }
 
+func TestSubmittingACompleteTransactionStoresItImmediately(t *testing.T) {
+	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
+	setup(t, clock, false)
+	h1 := hasher.AddMock("fred")
+	h1.AcceptAnything()
+	signer.SignAnythingAs("hello")
+	tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/", true)
+	stx, _ := r.ResolveTx(tx)
+	if stx == nil {
+		t.Fatalf("the transaction was not stored")
+	}
+}
+
 func checkNotReturned(t *testing.T, stx *records.StoredTransaction, err error) {
 	if stx != nil {
 		t.Fatalf("a stored transaction was returned when the message was not fully signed")
