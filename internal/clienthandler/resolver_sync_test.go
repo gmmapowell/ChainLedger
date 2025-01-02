@@ -11,7 +11,7 @@ import (
 func TestThatTwoThreadsCanSignDifferentFieldsAtTheSameTime(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
 	cc := helpers.NewChanCollector(t, 2)
-	setup(cc, clock)
+	setup(cc, clock, true)
 
 	h1 := hasher.AddMock("fred")
 	h1.AcceptAnything()
@@ -28,6 +28,15 @@ func TestThatTwoThreadsCanSignDifferentFieldsAtTheSameTime(t *testing.T) {
 		stx, _ := r.ResolveTx(tx)
 		cc.Send(stx)
 	}()
+
+	// Now wait for both of them to get to the critical section
+	w1 := finj.AllocatedWaiter()
+	w2 := finj.AllocatedWaiter()
+
+	// Then we can release both of them
+	w1.Release()
+	w2.Release()
+
 	s1 := cc.Recv()
 	s2 := cc.Recv()
 	tx1 := s1.(*records.StoredTransaction)

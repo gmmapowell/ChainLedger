@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"testing"
 	"time"
 )
 
@@ -11,7 +10,7 @@ type PairedWaiter interface {
 }
 
 type SimplePairedWaiter struct {
-	t        *testing.T
+	t        Fatals
 	notifyMe chan struct{}
 	delay    time.Duration
 }
@@ -35,7 +34,7 @@ type FaultInjection interface {
 }
 
 type TestingFaultInjection struct {
-	t           *testing.T
+	t           Fatals
 	allocations chan PairedWaiter
 }
 
@@ -60,12 +59,12 @@ func (t *TestingFaultInjection) AllocatedWaiterOrNil(waitFor time.Duration) Pair
 
 // NextWaiter implements FaultInjection.
 func (t *TestingFaultInjection) NextWaiter() {
-	ret := &SimplePairedWaiter{notifyMe: make(chan struct{}), delay: 10 * time.Second}
+	ret := &SimplePairedWaiter{t: t.t, notifyMe: make(chan struct{}), delay: 10 * time.Second}
 	t.allocations <- ret
 	ret.Wait()
 }
 
-func FaultInjectionLibrary(t *testing.T) FaultInjection {
+func FaultInjectionLibrary(t Fatals) FaultInjection {
 	return &TestingFaultInjection{t: t, allocations: make(chan PairedWaiter, 10)}
 }
 
@@ -87,5 +86,4 @@ func (i *InactiveFaultInjection) NextWaiter() {
 
 func IgnoreFaultInjection() FaultInjection {
 	return &InactiveFaultInjection{}
-
 }

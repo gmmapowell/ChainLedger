@@ -19,10 +19,12 @@ type TxResolver struct {
 	signer  helpers.Signer
 	nodeKey *rsa.PrivateKey
 	store   storage.PendingStorage
+	finj    helpers.FaultInjection
 }
 
 func (r TxResolver) ResolveTx(tx *api.Transaction) (*records.StoredTransaction, error) {
 	curr := r.store.PendingTx(tx)
+	r.finj.NextWaiter()
 	complete := true
 	for i, v := range tx.Signatories {
 		if v.Signature != nil && curr != nil {
@@ -42,5 +44,9 @@ func (r TxResolver) ResolveTx(tx *api.Transaction) (*records.StoredTransaction, 
 }
 
 func NewResolver(clock helpers.Clock, hasher helpers.HasherFactory, signer helpers.Signer, nodeKey *rsa.PrivateKey, store storage.PendingStorage) Resolver {
-	return &TxResolver{clock: clock, hasher: hasher, signer: signer, nodeKey: nodeKey, store: store}
+	return TestResolver(helpers.IgnoreFaultInjection(), clock, hasher, signer, nodeKey, store)
+}
+
+func TestResolver(finj helpers.FaultInjection, clock helpers.Clock, hasher helpers.HasherFactory, signer helpers.Signer, nodeKey *rsa.PrivateKey, store storage.PendingStorage) Resolver {
+	return &TxResolver{finj: finj, clock: clock, hasher: hasher, signer: signer, nodeKey: nodeKey, store: store}
 }

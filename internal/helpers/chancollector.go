@@ -11,6 +11,7 @@ type ChanCollector struct {
 
 // Fail implements Fatals.
 func (cc *ChanCollector) Fail() {
+	defer handleClosedChannel(cc)
 	close(cc.collector)
 }
 
@@ -31,11 +32,7 @@ func (cc *ChanCollector) Logf(format string, args ...any) {
 }
 
 func (cc *ChanCollector) Send(obj any) {
-	defer func() {
-		if recover() != nil {
-			cc.Logf("channel had already been closed")
-		}
-	}()
+	defer handleClosedChannel(cc)
 	cc.collector <- obj
 }
 
@@ -45,6 +42,12 @@ func (cc *ChanCollector) Recv() any {
 		cc.t.FailNow()
 	}
 	return msg
+}
+
+func handleClosedChannel(cc Fatals) {
+	if recover() != nil {
+		cc.Logf("channel had already been closed")
+	}
 }
 
 func NewChanCollector(t *testing.T, nc int) *ChanCollector {
