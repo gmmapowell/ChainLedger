@@ -39,7 +39,7 @@ func (r RecordStorage) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Printf("Have transaction %v\n", tx)
+	log.Printf("Have transaction %v\n", &tx)
 	if stx, err := r.resolver.ResolveTx(&tx); stx != nil {
 		r.journal.RecordTx(stx)
 	} else if err != nil {

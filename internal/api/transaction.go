@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/url"
 	"slices"
+	"sync/atomic"
 
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
@@ -20,6 +21,7 @@ type Transaction struct {
 	ContentLink *url.URL
 	ContentHash types.Hash
 	Signatories []*types.Signatory
+	completed   atomic.Bool
 }
 
 func NewTransaction(linkStr string, h types.Hash) (*Transaction, error) {
@@ -31,7 +33,7 @@ func NewTransaction(linkStr string, h types.Hash) (*Transaction, error) {
 	return &Transaction{ContentLink: link, ContentHash: h, Signatories: make([]*types.Signatory, 0)}, nil
 }
 
-func (tx Transaction) ID() types.Hash {
+func (tx *Transaction) ID() types.Hash {
 	hasher := sha512.New()
 	hasher.Write([]byte(tx.ContentLink.String()))
 	hasher.Write([]byte("\n"))
@@ -130,7 +132,7 @@ func (tx *Transaction) JsonReader() (io.Reader, error) {
 	return bytes.NewReader(json), nil
 }
 
-func (tx Transaction) String() string {
+func (tx *Transaction) String() string {
 	sigs := ""
 	for _, s := range tx.Signatories {
 		sigs = sigs + ", " + s.Signer.String()
@@ -138,7 +140,7 @@ func (tx Transaction) String() string {
 	return fmt.Sprintf("Tx[%s, %v%s]", tx.ContentLink, tx.ContentHash, sigs)
 }
 
-func (tx Transaction) MarshalJSON() ([]byte, error) {
+func (tx *Transaction) MarshalJSON() ([]byte, error) {
 	var m = make(map[string]any)
 	m["ContentLink"] = tx.ContentLink.String()
 	m["ContentHash"] = tx.ContentHash
@@ -164,4 +166,8 @@ func (tx *Transaction) UnmarshalJSON(bs []byte) error {
 	tx.Signatories = wire.Signatories
 
 	return nil
+}
+
+func (tx *Transaction) AlreadyCompleted() bool {
+	return tx.completed.Swap(true)
 }

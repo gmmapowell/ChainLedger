@@ -40,7 +40,9 @@ func (r TxResolver) ResolveTx(tx *api.Transaction) (*records.StoredTransaction, 
 		if curr == nil {
 			curr = tx
 		}
-		return records.CreateStoredTransaction(r.clock, r.hasher, r.signer, r.nodeKey, curr)
+		if !curr.AlreadyCompleted() {
+			return records.CreateStoredTransaction(r.clock, r.hasher, r.signer, r.nodeKey, curr)
+		}
 	}
 
 	return nil, nil
