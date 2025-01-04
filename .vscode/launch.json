@@ -46,7 +46,7 @@
 		"request": "launch",
 		"program": "cmd/harness",
 		"args": [
-			"../../config/harness/node_2.json"
+			"../../config/harness/node_1x5x2000.json"
 		]
 	}]
 }
