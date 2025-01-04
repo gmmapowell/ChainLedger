@@ -36,14 +36,16 @@ type MemoryJournaller struct {
 func (d *MemoryJournaller) RecordTx(tx *records.StoredTransaction) error {
 	d.finj.NextWaiter()
 	d.txs = append(d.txs, tx)
-	fmt.Printf("%s recording tx with id %v, have %d\n", d.name, tx.TxID, len(d.txs))
+	fmt.Printf("%s recording tx with id %v, have %d at %p\n", d.name, tx.TxID, len(d.txs), d.txs)
 	return nil
 }
 
 func (d MemoryJournaller) ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error) {
 	var ret []*records.StoredTransaction
 	for _, tx := range d.txs {
+		fmt.Printf("before waiting txs = %p\n", d.txs)
 		d.finj.NextWaiter()
+		fmt.Printf("after waiting txs = %p\n", d.txs)
 		if tx.WhenReceived >= from && tx.WhenReceived < upto {
 			ret = append(ret, tx)
 		}
