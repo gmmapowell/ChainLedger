@@ -10,7 +10,7 @@ import (
 )
 
 func TestWeCanAddAndRecoverAtTheSameTime(t *testing.T) {
-	clock := helpers.ClockDoubleSameMinute("2024-12-25_03:00", "05.121", "07.282", "11.281", "19.202")
+	clock := helpers.ClockDoubleSameMinute("2024-12-25_03:00", "05.121", "07.282", "08.301", "08.402", "11.281", "14.010", "19.202")
 
 	finj := helpers.FaultInjectionLibrary(t)
 	tj := storage.TestJournaller("journal", finj)
@@ -22,19 +22,21 @@ func TestWeCanAddAndRecoverAtTheSameTime(t *testing.T) {
 		}
 	}()
 	aw := finj.AllocatedWaiter()
-	for !journal.HaveSome() || journal.NotAtCapacity() {
+	for !journal.HaveAtLeast(3) || journal.NotAtCapacity() {
 		aw.Release()
 		aw = finj.AllocatedWaiter()
 	}
 	go func() {
-		txs, _ := tj.ReadTransactionsBetween(clock.Times[0], clock.Times[3])
+		txs, _ := tj.ReadTransactionsBetween(clock.Times[0], clock.Times[6])
+		fmt.Printf("%v\n", txs)
+		txs, _ = tj.ReadTransactionsBetween(clock.Times[0], clock.Times[6])
 		fmt.Printf("%v\n", txs)
 	}()
 	rw := finj.AllocatedWaiter()
 	aw.Release()
 	/*aw = */ finj.AllocatedWaiter()
 	rw.Release()
-	// aw.Release()
+	finj.JustRun()
 }
 
 func storableTx(clock helpers.Clock) *records.StoredTransaction {

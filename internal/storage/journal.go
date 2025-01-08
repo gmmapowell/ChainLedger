@@ -53,14 +53,12 @@ func (d MemoryJournaller) ReadTransactionsBetween(from types.Timestamp, upto typ
 	return ret, nil
 }
 
-func (d *MemoryJournaller) HaveSome() bool {
-	fmt.Printf("len = %d\n", len(d.txs))
-	return len(d.txs) > 0
+func (d *MemoryJournaller) HaveAtLeast(n int) bool {
+	return len(d.txs) >= n
 }
 
 func (d *MemoryJournaller) NotAtCapacity() bool {
-	fmt.Printf("cap = %d len = %d\n", cap(d.txs), len(d.txs))
-	return cap(d.txs) < len(d.txs)
+	return cap(d.txs) > len(d.txs)
 }
 
 func NewJournaller(name string) Journaller {
