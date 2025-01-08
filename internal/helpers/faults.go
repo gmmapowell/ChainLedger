@@ -29,6 +29,7 @@ func (spw SimplePairedWaiter) Release() {
 
 type FaultInjection interface {
 	NextWaiter()
+	JustRun()
 	AllocatedWaiter() PairedWaiter
 	AllocatedWaiterOrNil(waitFor time.Duration) PairedWaiter
 }
@@ -36,6 +37,12 @@ type FaultInjection interface {
 type TestingFaultInjection struct {
 	t           Fatals
 	allocations chan PairedWaiter
+	letRun      bool
+}
+
+// JustRun implements FaultInjection.
+func (t *TestingFaultInjection) JustRun() {
+	t.letRun = true
 }
 
 // AllocatedWaiter implements FaultInjection.
@@ -59,6 +66,9 @@ func (t *TestingFaultInjection) AllocatedWaiterOrNil(waitFor time.Duration) Pair
 
 // NextWaiter implements FaultInjection.
 func (t *TestingFaultInjection) NextWaiter() {
+	if t.letRun {
+		return
+	}
 	ret := &SimplePairedWaiter{t: t.t, notifyMe: make(chan struct{}), delay: 10 * time.Second}
 	t.allocations <- ret
 	ret.Wait()
@@ -69,6 +79,11 @@ func FaultInjectionLibrary(t Fatals) FaultInjection {
 }
 
 type InactiveFaultInjection struct{}
+
+// JustRun implements FaultInjection.
+func (i *InactiveFaultInjection) JustRun() {
+	panic("this should only be called from tests")
+}
 
 // AllocatedWaiter implements FaultInjection.
 func (i *InactiveFaultInjection) AllocatedWaiter() PairedWaiter {
