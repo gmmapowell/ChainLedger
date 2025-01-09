@@ -45,3 +45,14 @@ func TestWeCanAddAndRecoverAtTheSameTime(t *testing.T) {
 func storableTx(clock helpers.Clock) *records.StoredTransaction {
 	return &records.StoredTransaction{TxID: []byte("hello"), WhenReceived: clock.Time()}
 }
+
+func TestThread(t *testing.T) {
+	ch := storage.LaunchJournalThread()
+	ch <- storage.JournalStoreCommand{}
+	ch <- storage.JournalRetrieveCommand{}
+	ch <- 42
+
+	donech := make(chan struct{})
+	ch <- storage.JournalDoneCommand{NotifyMe: donech}
+	<-donech
+}
