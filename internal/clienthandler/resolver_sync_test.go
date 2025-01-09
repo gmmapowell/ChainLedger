@@ -30,8 +30,8 @@ func TestThatTwoThreadsCanSignDifferentFieldsAtTheSameTime(t *testing.T) {
 	}()
 
 	// Now wait for both of them to get to the critical section
-	w1 := finj.AllocatedWaiter()
-	w2 := finj.AllocatedWaiter()
+	w1 := finj.AllocatedWaiter("resolve-tx")
+	w2 := finj.AllocatedWaiter("resolve-tx")
 
 	// Then we can release both of them
 	w1.Release()

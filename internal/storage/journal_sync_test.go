@@ -1,7 +1,7 @@
 package storage_test
 
 import (
-	"fmt"
+	"log"
 	"testing"
 
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
@@ -11,8 +11,9 @@ import (
 
 func TestWeCanAddAndRecoverAtTheSameTime(t *testing.T) {
 	clock := helpers.ClockDoubleSameMinute("2024-12-25_03:00", "05.121", "07.282", "08.301", "08.402", "11.281", "14.010", "19.202")
+	cc := helpers.NewChanCollector(t, 2)
 
-	finj := helpers.FaultInjectionLibrary(t)
+	finj := helpers.FaultInjectionLibrary(cc)
 	tj := storage.TestJournaller("journal", finj)
 	journal := tj.(*storage.MemoryJournaller)
 	completed := false
@@ -21,38 +22,28 @@ func TestWeCanAddAndRecoverAtTheSameTime(t *testing.T) {
 			journal.RecordTx(storableTx(clock))
 		}
 	}()
-	aw := finj.AllocatedWaiter()
-	for !journal.HaveAtLeast(3) || journal.NotAtCapacity() {
+	aw := finj.AllocatedWaiter("journal-store-tx")
+	for !journal.AtCapacityWithAtLeast(3) {
 		aw.Release()
-		aw = finj.AllocatedWaiter()
+		aw = finj.AllocatedWaiter("journal-store-tx")
 	}
-	waitAll := make(chan struct{})
 	go func() {
 		txs, _ := tj.ReadTransactionsBetween(clock.Times[0], clock.Times[6])
-		fmt.Printf("%v\n", txs)
+		log.Printf("%v\n", txs)
 		txs, _ = tj.ReadTransactionsBetween(clock.Times[0], clock.Times[6])
-		fmt.Printf("%v\n", txs)
-		waitAll <- struct{}{}
+		log.Printf("%v\n", txs)
+		cc.Send(struct{}{})
 	}()
-	rw := finj.AllocatedWaiter()
+	rw := finj.AllocatedWaiter("journal-read-txs")
 	aw.Release()
-	/*aw = */ finj.AllocatedWaiter()
+	/*aw = */ finj.AllocatedWaiter("journal-store-tx")
 	rw.Release()
-	finj.JustRun()
-	<-waitAll
+	rw = finj.AllocatedWaiter("journal-read-txs")
+	rw.Release()
+	finj.AllowAll("journal-read-txs")
+	cc.Recv()
 }
 
 func storableTx(clock helpers.Clock) *records.StoredTransaction {
 	return &records.StoredTransaction{TxID: []byte("hello"), WhenReceived: clock.Time()}
-}
-
-func TestThread(t *testing.T) {
-	ch := storage.LaunchJournalThread()
-	ch <- storage.JournalStoreCommand{}
-	ch <- storage.JournalRetrieveCommand{}
-	ch <- 42
-
-	donech := make(chan struct{})
-	ch <- storage.JournalDoneCommand{NotifyMe: donech}
-	<-donech
 }

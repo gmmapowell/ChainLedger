@@ -11,6 +11,7 @@ import (
 type Journaller interface {
 	RecordTx(tx *records.StoredTransaction) error
 	ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error)
+	Quit() error
 }
 
 type DummyJournaller struct {
@@ -26,39 +27,43 @@ func (d DummyJournaller) ReadTransactionsBetween(from types.Timestamp, upto type
 	return nil, nil
 }
 
+func (d *DummyJournaller) Quit() error {
+	return nil
+}
+
+func NewDummyJournaller() Journaller {
+	return &DummyJournaller{}
+}
+
 type MemoryJournaller struct {
-	name string
-	txs  []*records.StoredTransaction
-	finj helpers.FaultInjection
+	name     string
+	tothread chan<- JournalCommand
+	finj     helpers.FaultInjection
 }
 
 // RecordTx implements Journaller.
 func (d *MemoryJournaller) RecordTx(tx *records.StoredTransaction) error {
-	d.finj.NextWaiter()
-	d.txs = append(d.txs, tx)
-	fmt.Printf("%s recording tx with id %v, have %d at %p\n", d.name, tx.TxID, len(d.txs), d.txs)
+	d.finj.NextWaiter("journal-store-tx")
+	d.tothread <- JournalStoreCommand{Tx: tx}
 	return nil
 }
 
 func (d MemoryJournaller) ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error) {
-	var ret []*records.StoredTransaction
-	for _, tx := range d.txs {
-		fmt.Printf("before waiting txs = %p\n", d.txs)
-		d.finj.NextWaiter()
-		fmt.Printf("after waiting txs = %p\n", d.txs)
-		if tx.WhenReceived >= from && tx.WhenReceived < upto {
-			ret = append(ret, tx)
-		}
-	}
+	messageMe := make(chan []*records.StoredTransaction)
+	d.finj.NextWaiter("journal-read-txs")
+	d.tothread <- JournalRetrieveCommand{From: from, Upto: upto, ResultChan: messageMe}
+	ret := <-messageMe
 	return ret, nil
 }
 
-func (d *MemoryJournaller) HaveAtLeast(n int) bool {
-	return len(d.txs) >= n
+func (d *MemoryJournaller) Quit() error {
+	return nil
 }
 
-func (d *MemoryJournaller) NotAtCapacity() bool {
-	return cap(d.txs) > len(d.txs)
+func (d *MemoryJournaller) AtCapacityWithAtLeast(n int) bool {
+	messageMe := make(chan bool)
+	d.tothread <- JournalCheckCapacityCommand{AtLeast: n, ResultChan: messageMe}
+	return <-messageMe
 }
 
 func NewJournaller(name string) Journaller {
@@ -66,5 +71,7 @@ func NewJournaller(name string) Journaller {
 }
 
 func TestJournaller(name string, finj helpers.FaultInjection) Journaller {
-	return &MemoryJournaller{name: name, finj: finj}
+	ret := MemoryJournaller{name: name, finj: finj}
+	ret.tothread = LaunchJournalThread(name, finj)
+	return &ret
 }

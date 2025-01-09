@@ -20,7 +20,7 @@ func TestTwoThreadsCannotBeInCriticalZoneAtOnce(t *testing.T) {
 		sx := mps.PendingTx(tx1)
 		results <- sx
 	}()
-	w1 := finj.AllocatedWaiter()
+	w1 := finj.AllocatedWaiter("pending-tx")
 
 	go func() {
 		tx2, _ := api.NewTransaction("https://hello.com", types.Hash("hello"))
@@ -28,14 +28,14 @@ func TestTwoThreadsCannotBeInCriticalZoneAtOnce(t *testing.T) {
 		rx := mps.PendingTx(tx2)
 		results <- rx
 	}()
-	w2 := finj.AllocatedWaiterOrNil(50 * time.Millisecond)
+	w2 := finj.AllocatedWaiterOrNil("pending-tx", 50*time.Millisecond)
 
 	if w2 != nil {
 		t.Fatalf("second waiter allocated before first released")
 	}
 	w1.Release()
 
-	w2 = finj.AllocatedWaiter()
+	w2 = finj.AllocatedWaiter("pending-tx")
 	if w2 == nil {
 		t.Fatalf("second waiter could not be allocated after first released")
 	}

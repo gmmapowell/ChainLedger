@@ -21,7 +21,7 @@ func (mps *MemoryPendingStorage) PendingTx(tx *api.Transaction) *api.Transaction
 	mps.mu.Lock()
 	defer mps.mu.Unlock()
 	curr := mps.store[string(tx.ID())]
-	mps.finj.NextWaiter()
+	mps.finj.NextWaiter("pending-tx")
 	if curr == nil {
 		mps.store[string(tx.ID())] = tx
 	}
