@@ -24,7 +24,7 @@ type TxResolver struct {
 
 func (r TxResolver) ResolveTx(tx *api.Transaction) (*records.StoredTransaction, error) {
 	curr := r.store.PendingTx(tx)
-	r.finj.NextWaiter()
+	r.finj.NextWaiter("resolve-tx")
 	complete := true
 	for i, v := range tx.Signatories {
 		if v.Signature != nil && curr != nil {
