@@ -26,17 +26,20 @@ func TestWeCanAddAndRecoverAtTheSameTime(t *testing.T) {
 		aw.Release()
 		aw = finj.AllocatedWaiter()
 	}
+	waitAll := make(chan struct{})
 	go func() {
 		txs, _ := tj.ReadTransactionsBetween(clock.Times[0], clock.Times[6])
 		fmt.Printf("%v\n", txs)
 		txs, _ = tj.ReadTransactionsBetween(clock.Times[0], clock.Times[6])
 		fmt.Printf("%v\n", txs)
+		waitAll <- struct{}{}
 	}()
 	rw := finj.AllocatedWaiter()
 	aw.Release()
 	/*aw = */ finj.AllocatedWaiter()
 	rw.Release()
 	finj.JustRun()
+	<-waitAll
 }
 
 func storableTx(clock helpers.Clock) *records.StoredTransaction {
