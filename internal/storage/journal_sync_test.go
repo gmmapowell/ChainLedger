@@ -42,6 +42,7 @@ func TestWeCanAddAndRecoverAtTheSameTime(t *testing.T) {
 	rw.Release()
 	finj.AllowAll("journal-read-txs")
 	cc.Recv()
+	journal.Quit()
 }
 
 func storableTx(clock helpers.Clock) *records.StoredTransaction {
