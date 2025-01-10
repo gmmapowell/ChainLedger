@@ -31,7 +31,7 @@ type JournalDoneCommand struct {
 
 func LaunchJournalThread(name string, finj helpers.FaultInjection) chan<- JournalCommand {
 	var txs []*records.StoredTransaction
-	ret := make(chan JournalCommand)
+	ret := make(chan JournalCommand, 20)
 	log.Printf("launching new journal thread with channel %p", ret)
 	go func() {
 	whenDone:
