@@ -1,15 +1,13 @@
 {
 	"nodes": [{
 		"name": "http://localhost:5001",
-		"listenOn": ":5001"
-	}],
-	"clients": {
-		"http://localhost:5001": [
+		"listenOn": ":5001",
+		"clients": [
 			{ "user": "https://user1.com/", "count": 1500 },
 			{ "user": "https://user2.com/", "count": 2000 },
 			{ "user": "https://user3.com/", "count": 1750 },
 			{ "user": "https://user4.com/", "count": 2500 },
 			{ "user": "https://user5.com/", "count": 2250 }
 		]
-	}
+	}]
 }

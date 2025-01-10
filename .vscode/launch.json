@@ -31,10 +31,22 @@
 		"program": "${workspaceFolder}/internal/storage"
 	},
 	{
-		"name": "chainledger",
+		"name": "chainledger 5001",
 		"type": "go",
 		"request": "launch",
-		"program": "cmd/chainledger"
+		"program": "cmd/chainledger",
+		"args": [
+			"../../config/nodes/node5001.json"
+		]
+	},
+	{
+		"name": "chainledger 5002",
+		"type": "go",
+		"request": "launch",
+		"program": "cmd/chainledger",
+		"args": [
+			"../../config/nodes/node5002.json"
+		]
 	},{
 		"name": "ledgerclient",
 		"type": "go",
@@ -48,5 +60,10 @@
 		"args": [
 			"../../config/harness/node_1x5x2000.json"
 		]
+	},{
+		"name": "keypair",
+		"type": "go",
+		"request": "launch",
+		"program": "cmd/keypair"
 	}]
 }

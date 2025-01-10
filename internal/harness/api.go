@@ -10,8 +10,8 @@ import (
 // Start the nodes
 func StartNodes(c Config) []clienthandler.Node {
 	var nodes []clienthandler.Node
-	for _, n := range c.Nodes() {
-		node := clienthandler.NewListenerNode(n.Name, n.ListenOn)
+	for _, n := range c.NodeNames() {
+		node := clienthandler.NewListenerNode(c.Launcher(n))
 		nodes = append(nodes, node)
 		go node.Start()
 	}
@@ -27,12 +27,12 @@ func PrepareClients(c Config) []Client {
 	}
 
 	// Find all the users who are connecting to nodes and make sure they are in the repo
-	m := c.ClientsPerNode()
-	for _, clis := range m {
+	for _, n := range c.NodeNames() {
+		clis := c.ClientsFor(n)
 		for _, cli := range clis {
-			if repo.HasUser(cli.Client) {
+			if repo.HasUser(cli.User) {
 				continue
-			} else if err := repo.NewUser(cli.Client); err != nil {
+			} else if err := repo.NewUser(cli.User); err != nil {
 				panic(err)
 			}
 		}
@@ -40,23 +40,24 @@ func PrepareClients(c Config) []Client {
 
 	// Create all the clients that will publish, and make sure that they also have all the corresponding listeners
 	ret := make([]Client, 0)
-	for node, clis := range m {
+	for _, n := range c.NodeNames() {
+		clis := c.ClientsFor(n)
 		// Figure out all the users on this node, and thus the cross-product of co-signing channels we need
 		allUsers := usersOnNode(clis)
 		chans := crossChannels(allUsers)
 
 		// Now create the submitters and thus the clients and build a list
 		for _, cli := range clis {
-			if s, err := repo.SubmitterFor(node, cli.Client); err != nil {
+			if s, err := repo.SubmitterFor(n, cli.User); err != nil {
 				panic(err)
 			} else {
 				client := ConfigClient{
 					repo:      &repo,
 					submitter: s,
-					user:      cli.Client,
+					user:      cli.User,
 					count:     cli.Count,
-					signFor:   chanReceivers(chans, cli.Client),
-					cosigners: chanSenders(chans, cli.Client),
+					signFor:   chanReceivers(chans, cli.User),
+					cosigners: chanSenders(chans, cli.User),
 					done:      make(chan struct{}),
 				}
 				ret = append(ret, &client)
@@ -74,8 +75,8 @@ func PrepareClients(c Config) []Client {
 func usersOnNode(clis []*CliConfig) []string {
 	ret := make([]string, 0)
 	for _, c := range clis {
-		if slices.Index(ret, c.Client) == -1 {
-			ret = append(ret, c.Client)
+		if slices.Index(ret, c.User) == -1 {
+			ret = append(ret, c.User)
 		}
 	}
 	return ret

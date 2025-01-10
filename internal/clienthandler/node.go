@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 
 	"github.com/gmmapowell/ChainLedger/internal/block"
 	"github.com/gmmapowell/ChainLedger/internal/config"
@@ -21,27 +20,25 @@ type Node interface {
 }
 
 type ListenerNode struct {
-	name       *url.URL
-	addr       string
+	config     config.LaunchableNodeConfig
 	Control    types.PingBack
 	server     *http.Server
 	journaller storage.Journaller
 }
 
+func (node *ListenerNode) Name() string {
+	return node.config.Name().String()
+}
+
 func (node *ListenerNode) Start() {
-	log.Printf("starting chainledger node %s\n", node.name)
+	log.Printf("starting chainledger node %s\n", node.Name())
 	clock := &helpers.ClockLive{}
 	hasher := &helpers.SHA512Factory{}
 	signer := &helpers.RSASigner{}
-	config, err := config.ReadNodeConfig(node.name, node.addr)
-	if err != nil {
-		fmt.Printf("error reading config: %s\n", err)
-		return
-	}
 	pending := storage.NewMemoryPendingStorage()
-	resolver := NewResolver(clock, hasher, signer, config.NodeKey, pending)
-	node.journaller = storage.NewJournaller(node.name.String())
-	node.runBlockBuilder(clock, node.journaller, config)
+	resolver := NewResolver(clock, hasher, signer, node.config.PrivateKey(), pending)
+	node.journaller = storage.NewJournaller(node.Name())
+	node.runBlockBuilder(clock, node.journaller, node.config)
 	node.startAPIListener(resolver, node.journaller)
 }
 
@@ -51,11 +48,11 @@ func (node *ListenerNode) Terminate() {
 	node.Control <- waitChan.Sender()
 	<-waitChan
 	node.journaller.Quit()
-	log.Printf("node %s finished\n", node.name)
+	log.Printf("node %s finished\n", node.Name())
 }
 
-func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config *config.NodeConfig) {
-	builder := block.NewBlockBuilder(clock, journaller, config.Name, config.NodeKey, node.Control)
+func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config config.LaunchableNodeConfig) {
+	builder := block.NewBlockBuilder(clock, journaller, config.Name(), config.PrivateKey(), node.Control)
 	builder.Start()
 }
 
@@ -65,13 +62,13 @@ func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage
 	cliapi.Handle("/ping", pingMe)
 	storeRecord := NewRecordStorage(resolver, journaller)
 	cliapi.Handle("/store", storeRecord)
-	node.server = &http.Server{Addr: node.addr, Handler: cliapi}
+	node.server = &http.Server{Addr: node.config.ListenOn(), Handler: cliapi}
 	err := node.server.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("error starting server: %s\n", err)
 	}
 }
 
-func NewListenerNode(name *url.URL, addr string) Node {
-	return &ListenerNode{name: name, addr: addr, Control: make(types.PingBack)}
+func NewListenerNode(config config.LaunchableNodeConfig) Node {
+	return &ListenerNode{config: config, Control: make(types.PingBack)}
 }
