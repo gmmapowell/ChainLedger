@@ -38,12 +38,14 @@ func (builder *SleepBlockBuilder) Run() {
 	if err != nil {
 		panic("error returned from building block 0")
 	}
+	builder.journaller.RecordBlock(lastBlock)
 	for {
 		prev := blocktime
 		select {
 		case pingback := <-builder.control:
 			log.Printf("%s asked to build final block and quit", builder.Name.String())
-			builder.buildBlock(prev, builder.clock.Time(), lastBlock)
+			lastBlock = builder.buildBlock(prev, builder.clock.Time(), lastBlock)
+			builder.journaller.RecordBlock(lastBlock)
 			pingback.Send()
 			return
 		case blocktime = <-timer:
@@ -52,6 +54,7 @@ func (builder *SleepBlockBuilder) Run() {
 			// we are ready to build a block
 			log.Printf("%s building block at %s", builder.Name.String(), nowis.IsoTime())
 			lastBlock = builder.buildBlock(prev, blocktime, lastBlock)
+			builder.journaller.RecordBlock(lastBlock)
 		}
 	}
 }
