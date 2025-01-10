@@ -10,6 +10,7 @@ import (
 
 type Journaller interface {
 	RecordTx(tx *records.StoredTransaction) error
+	RecordBlock(block *records.Block) error
 	ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error)
 	Quit() error
 }
@@ -20,6 +21,10 @@ type DummyJournaller struct {
 // RecordTx implements Journaller.
 func (d *DummyJournaller) RecordTx(tx *records.StoredTransaction) error {
 	fmt.Printf("Recording tx with id %v\n", tx.TxID)
+	return nil
+}
+
+func (d *DummyJournaller) RecordBlock(block *records.Block) error {
 	return nil
 }
 
@@ -45,6 +50,11 @@ type MemoryJournaller struct {
 func (d *MemoryJournaller) RecordTx(tx *records.StoredTransaction) error {
 	d.finj.NextWaiter("journal-store-tx")
 	d.tothread <- JournalStoreCommand{Tx: tx}
+	return nil
+}
+
+func (d *MemoryJournaller) RecordBlock(block *records.Block) error {
+	d.tothread <- JournalBlockCommand{Block: block}
 	return nil
 }
 

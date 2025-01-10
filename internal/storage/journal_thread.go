@@ -15,6 +15,10 @@ type JournalStoreCommand struct {
 	Tx *records.StoredTransaction
 }
 
+type JournalBlockCommand struct {
+	Block *records.Block
+}
+
 type JournalRetrieveCommand struct {
 	From, Upto types.Timestamp
 	ResultChan chan<- []*records.StoredTransaction
@@ -31,6 +35,7 @@ type JournalDoneCommand struct {
 
 func LaunchJournalThread(name string, finj helpers.FaultInjection) chan<- JournalCommand {
 	var txs []*records.StoredTransaction
+	var blocks []*records.Block
 	ret := make(chan JournalCommand, 20)
 	log.Printf("launching new journal thread with channel %p", ret)
 	go func() {
@@ -41,6 +46,9 @@ func LaunchJournalThread(name string, finj helpers.FaultInjection) chan<- Journa
 			case JournalStoreCommand:
 				txs = append(txs, v.Tx)
 				log.Printf("%s recording tx with id %v, have %d at %p", name, v.Tx.TxID, len(txs), txs)
+			case JournalBlockCommand:
+				blocks = append(blocks, v.Block)
+				log.Printf("%s recording block with id %v, have %d at %p", name, v.Block.ID, len(blocks), blocks)
 			case JournalRetrieveCommand:
 				log.Printf("reading txs = %p, len = %d", txs, len(txs))
 				var ret []*records.StoredTransaction

@@ -21,10 +21,11 @@ type Node interface {
 }
 
 type ListenerNode struct {
-	name    *url.URL
-	addr    string
-	Control types.PingBack
-	server  *http.Server
+	name       *url.URL
+	addr       string
+	Control    types.PingBack
+	server     *http.Server
+	journaller storage.Journaller
 }
 
 func (node *ListenerNode) Start() {
@@ -39,9 +40,9 @@ func (node *ListenerNode) Start() {
 	}
 	pending := storage.NewMemoryPendingStorage()
 	resolver := NewResolver(clock, hasher, signer, config.NodeKey, pending)
-	journaller := storage.NewJournaller(node.name.String())
-	node.runBlockBuilder(clock, journaller, config)
-	node.startAPIListener(resolver, journaller)
+	node.journaller = storage.NewJournaller(node.name.String())
+	node.runBlockBuilder(clock, node.journaller, config)
+	node.startAPIListener(resolver, node.journaller)
 }
 
 func (node *ListenerNode) Terminate() {
@@ -49,6 +50,7 @@ func (node *ListenerNode) Terminate() {
 	waitChan := make(types.Signal)
 	node.Control <- waitChan.Sender()
 	<-waitChan
+	node.journaller.Quit()
 	log.Printf("node %s finished\n", node.name)
 }
 

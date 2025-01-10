@@ -3,6 +3,8 @@ package records
 import (
 	"net/url"
 
+	"encoding/base64"
+
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
@@ -16,5 +18,5 @@ type Block struct {
 }
 
 func (b Block) String() string {
-	return "Block"
+	return "Block[" + base64.StdEncoding.EncodeToString(b.ID) + "]"
 }
