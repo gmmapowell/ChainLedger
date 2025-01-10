@@ -57,6 +57,9 @@ func (d MemoryJournaller) ReadTransactionsBetween(from types.Timestamp, upto typ
 }
 
 func (d *MemoryJournaller) Quit() error {
+	donech := make(chan struct{})
+	d.tothread <- JournalDoneCommand{NotifyMe: donech}
+	<-donech
 	return nil
 }
 
