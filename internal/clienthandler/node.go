@@ -10,6 +10,7 @@ import (
 	"github.com/gmmapowell/ChainLedger/internal/block"
 	"github.com/gmmapowell/ChainLedger/internal/config"
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
+	"github.com/gmmapowell/ChainLedger/internal/internode"
 	"github.com/gmmapowell/ChainLedger/internal/storage"
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
@@ -60,7 +61,11 @@ func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage
 	cliapi := http.NewServeMux()
 	pingMe := PingHandler{}
 	cliapi.Handle("/ping", pingMe)
-	storeRecord := NewRecordStorage(resolver, journaller)
+	senders := make([]internode.BinarySender, len(node.config.OtherNodes()))
+	for i, n := range node.config.OtherNodes() {
+		senders[i] = internode.NewHttpBinarySender(n.Name())
+	}
+	storeRecord := NewRecordStorage(resolver, journaller, senders)
 	cliapi.Handle("/store", storeRecord)
 	node.server = &http.Server{Addr: node.config.ListenOn(), Handler: cliapi}
 	err := node.server.ListenAndServe()

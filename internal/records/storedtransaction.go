@@ -20,6 +20,20 @@ type StoredTransaction struct {
 	NodeSig      types.Signature
 }
 
+func (s *StoredTransaction) MarshalBinary() ([]byte, error) {
+	ret := types.NewBinaryMarshallingBuffer()
+	s.TxID.MarshalBinaryInto(ret)
+	s.WhenReceived.MarshalBinaryInto(ret)
+	types.MarshalStringInto(ret, s.ContentLink.String())
+	s.ContentHash.MarshalBinaryInto(ret)
+	types.MarshalInt32Into(ret, int32(len(s.Signatories)))
+	for _, sg := range s.Signatories {
+		sg.MarshalBinaryInto(ret)
+	}
+	s.NodeSig.MarshalBinaryInto(ret)
+	return ret.Bytes(), nil
+}
+
 func CreateStoredTransaction(clock helpers.Clock, hasherFactory helpers.HasherFactory, signer helpers.Signer, nodeKey *rsa.PrivateKey, tx *api.Transaction) (*StoredTransaction, error) {
 	copyLink := *tx.ContentLink
 	ret := StoredTransaction{WhenReceived: clock.Time(), ContentLink: &copyLink, ContentHash: bytes.Clone(tx.ContentHash), Signatories: make([]*types.Signatory, len(tx.Signatories))}

@@ -7,16 +7,18 @@ import (
 	"net/http"
 
 	"github.com/gmmapowell/ChainLedger/internal/api"
+	"github.com/gmmapowell/ChainLedger/internal/internode"
 	"github.com/gmmapowell/ChainLedger/internal/storage"
 )
 
 type RecordStorage struct {
 	resolver Resolver
 	journal  storage.Journaller
+	senders  []internode.BinarySender
 }
 
-func NewRecordStorage(r Resolver, j storage.Journaller) RecordStorage {
-	return RecordStorage{resolver: r, journal: j}
+func NewRecordStorage(r Resolver, j storage.Journaller, senders []internode.BinarySender) RecordStorage {
+	return RecordStorage{resolver: r, journal: j, senders: senders}
 }
 
 // ServeHTTP implements http.Handler.
@@ -42,6 +44,14 @@ func (r RecordStorage) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	log.Printf("Have transaction %v\n", &tx)
 	if stx, err := r.resolver.ResolveTx(&tx); stx != nil {
 		r.journal.RecordTx(stx)
+		blob, err := stx.MarshalBinary()
+		if err != nil {
+			log.Printf("Error marshalling tx: %v %v\n", tx.ID(), err)
+			return
+		}
+		for _, bs := range r.senders {
+			go bs.Send("/remotetx", blob)
+		}
 	} else if err != nil {
 		log.Printf("Error resolving tx: %v\n", err)
 		resp.WriteHeader(http.StatusInternalServerError)

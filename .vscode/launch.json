@@ -53,7 +53,15 @@
 		"request": "launch",
 		"program": "cmd/ledgerclient"
 	},{
-		"name": "harness",
+		"name": "harness small",
+		"type": "go",
+		"request": "launch",
+		"program": "cmd/harness",
+		"args": [
+			"../../config/harness/node_2.json"
+		]
+	},{
+		"name": "harness big",
 		"type": "go",
 		"request": "launch",
 		"program": "cmd/harness",
