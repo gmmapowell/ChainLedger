@@ -67,6 +67,8 @@ func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage
 	}
 	storeRecord := NewRecordStorage(resolver, journaller, senders)
 	cliapi.Handle("/store", storeRecord)
+	remoteTxHandler := internode.NewTransactionHandler()
+	cliapi.Handle("/remotetx", remoteTxHandler)
 	node.server = &http.Server{Addr: node.config.ListenOn(), Handler: cliapi}
 	err := node.server.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
