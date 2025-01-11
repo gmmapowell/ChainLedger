@@ -46,3 +46,8 @@ func (sig *Signatory) UnmarshalJSON(bs []byte) error {
 
 	return nil
 }
+
+func (sg Signatory) MarshalBinaryInto(buf *BinaryMarsallingBuffer) {
+	MarshalStringInto(buf, sg.Signer.String())
+	sg.Signature.MarshalBinaryInto(buf)
+}

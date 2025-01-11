@@ -27,3 +27,7 @@ func (ts Timestamp) AsBytes() []byte {
 	binary.LittleEndian.PutUint64(s, uint64(ts))
 	return s
 }
+
+func (ts Timestamp) MarshalBinaryInto(buf *BinaryMarsallingBuffer) {
+	MarshalInt64Into(buf, int64(ts))
+}
