@@ -37,17 +37,42 @@ func (s *StoredTransaction) MarshalBinary() ([]byte, error) {
 func UnmarshalBinaryStoredTransaction(bytes []byte) (*StoredTransaction, error) {
 	buf := types.NewBinaryUnmarshallingBuffer(bytes)
 	stx := StoredTransaction{}
-	stx.TxID, _ = types.UnmarshalHashFrom(buf)
-	stx.WhenReceived, _ = types.UnmarshalTimestampFrom(buf)
-	cls, _ := types.UnmarshalStringFrom(buf)
-	stx.ContentLink, _ = url.Parse(cls)
-	stx.ContentHash, _ = types.UnmarshalHashFrom(buf)
-	nsigs, _ := types.UnmarshalInt32From(buf)
+	var err error
+	stx.TxID, err = types.UnmarshalHashFrom(buf)
+	if err != nil {
+		return nil, err
+	}
+	stx.WhenReceived, err = types.UnmarshalTimestampFrom(buf)
+	if err != nil {
+		return nil, err
+	}
+	cls, err := types.UnmarshalStringFrom(buf)
+	if err != nil {
+		return nil, err
+	}
+	stx.ContentLink, err = url.Parse(cls)
+	if err != nil {
+		return nil, err
+	}
+	stx.ContentHash, err = types.UnmarshalHashFrom(buf)
+	if err != nil {
+		return nil, err
+	}
+	nsigs, err := types.UnmarshalInt32From(buf)
+	if err != nil {
+		return nil, err
+	}
 	stx.Signatories = make([]*types.Signatory, nsigs)
 	for i := 0; i < int(nsigs); i++ {
-		stx.Signatories[i], _ = types.UnmarshalSignatoryFrom(buf)
+		stx.Signatories[i], err = types.UnmarshalSignatoryFrom(buf)
+		if err != nil {
+			return nil, err
+		}
 	}
-	_ = buf.ShouldBeDone()
+	err = buf.ShouldBeDone()
+	if err != nil {
+		return nil, err
+	}
 	return &stx, nil
 }
 
