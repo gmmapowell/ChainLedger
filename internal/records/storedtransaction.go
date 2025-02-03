@@ -34,6 +34,23 @@ func (s *StoredTransaction) MarshalBinary() ([]byte, error) {
 	return ret.Bytes(), nil
 }
 
+func UnmarshalBinaryStoredTransaction(bytes []byte) (*StoredTransaction, error) {
+	buf := types.NewBinaryUnmarshallingBuffer(bytes)
+	stx := StoredTransaction{}
+	stx.TxID, _ = types.UnmarshalHashFrom(buf)
+	stx.WhenReceived, _ = types.UnmarshalTimestampFrom(buf)
+	cls, _ := types.UnmarshalStringFrom(buf)
+	stx.ContentLink, _ = url.Parse(cls)
+	stx.ContentHash, _ = types.UnmarshalHashFrom(buf)
+	nsigs, _ := types.UnmarshalInt32From(buf)
+	stx.Signatories = make([]*types.Signatory, nsigs)
+	for i := 0; i < int(nsigs); i++ {
+		stx.Signatories[i], _ = types.UnmarshalSignatoryFrom(buf)
+	}
+	_ = buf.ShouldBeDone()
+	return &stx, nil
+}
+
 func CreateStoredTransaction(clock helpers.Clock, hasherFactory helpers.HasherFactory, signer helpers.Signer, nodeKey *rsa.PrivateKey, tx *api.Transaction) (*StoredTransaction, error) {
 	copyLink := *tx.ContentLink
 	ret := StoredTransaction{WhenReceived: clock.Time(), ContentLink: &copyLink, ContentHash: bytes.Clone(tx.ContentHash), Signatories: make([]*types.Signatory, len(tx.Signatories))}

@@ -28,6 +28,14 @@ func (ts Timestamp) AsBytes() []byte {
 	return s
 }
 
-func (ts Timestamp) MarshalBinaryInto(buf *BinaryMarsallingBuffer) {
+func (ts Timestamp) MarshalBinaryInto(buf *BinaryMarshallingBuffer) {
 	MarshalInt64Into(buf, int64(ts))
+}
+
+func UnmarshalTimestampFrom(buf *BinaryUnmarshallingBuffer) (Timestamp, error) {
+	i64, err := buf.ReadInt64()
+	if err != nil {
+		return 0, err
+	}
+	return Timestamp(i64), nil
 }
