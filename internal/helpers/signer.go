@@ -5,15 +5,22 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"net/url"
 
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
 type Signer interface {
 	Sign(pk *rsa.PrivateKey, hash types.Hash) (types.Signature, error)
+	SignerName() *url.URL
 }
 
 type RSASigner struct {
+	Name *url.URL
+}
+
+func (s RSASigner) SignerName() *url.URL {
+	return s.Name
 }
 
 func (s RSASigner) Sign(pk *rsa.PrivateKey, hash types.Hash) (types.Signature, error) {
@@ -26,12 +33,17 @@ func (s RSASigner) Sign(pk *rsa.PrivateKey, hash types.Hash) (types.Signature, e
 
 type MockSigner struct {
 	t    Fatals
+	name *url.URL
 	sigs []*MockExpectedSig
 	next int
 }
 
-func NewMockSigner(t Fatals) *MockSigner {
-	return &MockSigner{t: t}
+func (s MockSigner) SignerName() *url.URL {
+	return s.name
+}
+
+func NewMockSigner(t Fatals, name *url.URL) *MockSigner {
+	return &MockSigner{t: t, name: name}
 }
 
 func (f *MockSigner) Expect(signature types.Signature, pk *rsa.PrivateKey, hash types.Hash) {

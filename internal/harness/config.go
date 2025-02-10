@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/gmmapowell/ChainLedger/internal/config"
+	"github.com/gmmapowell/ChainLedger/internal/storage"
 )
 
 type Config interface {
@@ -21,6 +22,7 @@ type Config interface {
 type HarnessConfig struct {
 	Nodes []*HarnessNode
 	keys  map[string]*rsa.PrivateKey
+	pubs  map[string]*rsa.PublicKey
 }
 
 type HarnessNode struct {
@@ -47,10 +49,21 @@ func (c *HarnessConfig) NodeNames() []string {
 func (c *HarnessConfig) Launcher(forNode string) config.LaunchableNodeConfig {
 	for _, n := range c.Nodes {
 		if n.Name == forNode {
-			return &HarnessLauncher{config: c, launching: n, private: c.keys[n.Name], public: &c.keys[n.Name].PublicKey}
+			return &HarnessLauncher{config: c, launching: n, private: c.keys[n.Name], public: &c.keys[n.Name].PublicKey, handlers: makeRemoteHandlers(c, n.Name)}
 		}
 	}
 	panic("no node found for " + forNode)
+}
+
+func makeRemoteHandlers(c *HarnessConfig, name string) map[string]storage.RemoteStorer {
+	ret := make(map[string]storage.RemoteStorer)
+	for _, remote := range c.Nodes {
+		if remote.Name == name {
+			continue
+		}
+		ret[remote.Name] = storage.NewRemoteStorer(c.pubs[remote.Name], storage.NewJournaller(remote.Name))
+	}
+	return ret
 }
 
 // Remote implements Config.
@@ -84,6 +97,7 @@ func ReadConfig(file string) Config {
 	var ret HarnessConfig
 	json.Unmarshal(bytes, &ret)
 	ret.keys = make(map[string]*rsa.PrivateKey)
+	ret.pubs = make(map[string]*rsa.PublicKey)
 
 	for _, n := range ret.Nodes {
 		name := n.Name
@@ -98,6 +112,7 @@ func ReadConfig(file string) Config {
 		}
 
 		ret.keys[name] = pk
+		ret.pubs[name] = &pk.PublicKey
 	}
 
 	return &ret

@@ -43,7 +43,7 @@ func (builder *SleepBlockBuilder) Run() {
 		prev := blocktime
 		select {
 		case pingback := <-builder.control:
-			log.Printf("%s asked to build final block and quit", builder.Name.String())
+			log.Printf("%s asked to build final block and quit\n", builder.Name.String())
 			lastBlock = builder.buildBlock(prev, builder.clock.Time(), lastBlock)
 			builder.journaller.RecordBlock(lastBlock)
 			pingback.Send()
@@ -52,7 +52,7 @@ func (builder *SleepBlockBuilder) Run() {
 			timer = builder.clock.After(delay)
 			nowis := <-builder.clock.After(pause)
 			// we are ready to build a block
-			log.Printf("%s building block at %s", builder.Name.String(), nowis.IsoTime())
+			log.Printf("%s building block at %s\n", builder.Name.String(), nowis.IsoTime())
 			lastBlock = builder.buildBlock(prev, blocktime, lastBlock)
 			builder.journaller.RecordBlock(lastBlock)
 		}

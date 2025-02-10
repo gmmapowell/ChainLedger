@@ -25,14 +25,15 @@ var s storage.PendingStorage
 var r clienthandler.Resolver
 var finj helpers.FaultInjection
 
-func setup(t helpers.Fatals, clock helpers.Clock, wantFi bool) {
+func setup(t helpers.Fatals, nodeName string, clock helpers.Clock, wantFi bool) {
+	nodeURL, _ := url.Parse(nodeName)
 	if wantFi {
 		finj = helpers.FaultInjectionLibrary(t)
 	} else {
 		finj = helpers.IgnoreFaultInjection()
 	}
 	hasher = helpers.NewMockHasherFactory(t)
-	signer = helpers.NewMockSigner(t)
+	signer = helpers.NewMockSigner(t, nodeURL)
 	repo, _ = client.MakeMemoryRepo()
 	repo.NewUser("https://user1.com/")
 	repo.NewUser("https://user2.com/")
@@ -57,7 +58,7 @@ func maketx(link string, hash string, userkeys ...any) *api.Transaction {
 }
 
 func TestANewTransactionMayBeStoredButReturnsNothing(t *testing.T) {
-	setup(t, nil, false)
+	setup(t, "https://test.com/node", nil, false)
 	tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 	stx, err := r.ResolveTx(tx)
 	checkNotReturned(t, stx, err)
@@ -65,7 +66,7 @@ func TestANewTransactionMayBeStoredButReturnsNothing(t *testing.T) {
 
 func TestTwoCopiesOfTheTransactionAreEnoughToContinue(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
-	setup(t, clock, false)
+	setup(t, "https://test.com/node", clock, false)
 	h1 := hasher.AddMock("fred")
 	h1.ExpectTimestamp(clock.Times[0])
 	h1.ExpectString("https://test.com/msg1\n")
@@ -92,7 +93,7 @@ func TestTwoCopiesOfTheTransactionAreEnoughToContinue(t *testing.T) {
 }
 
 func TestTwoIndependentTxsCanExistAtOnce(t *testing.T) {
-	setup(t, nil, false)
+	setup(t, "https://test.com/node", nil, false)
 	{
 		tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
 		stx, err := r.ResolveTx(tx)
@@ -107,7 +108,7 @@ func TestTwoIndependentTxsCanExistAtOnce(t *testing.T) {
 
 func TestTheReturnedTxHasAllTheFields(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
-	setup(t, clock, false)
+	setup(t, "https://test.com/node", clock, false)
 	h1 := hasher.AddMock("fred")
 	h1.ExpectTimestamp(clock.Times[0])
 	h1.ExpectString("https://test.com/msg1\n")
@@ -142,7 +143,7 @@ func TestTheReturnedTxHasAllTheFields(t *testing.T) {
 
 func TestTheReturnedTxHasATimestamp(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
-	setup(t, clock, false)
+	setup(t, "https://test.com/node", clock, false)
 	h1 := hasher.AddMock("fred")
 	h1.AcceptAnything()
 	tx1 := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/")
@@ -163,13 +164,13 @@ func TestTheReturnedTxHasATimestamp(t *testing.T) {
 
 func TestTheReturnedTxIsSigned(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
-	setup(t, clock, false)
+	setup(t, "https://test.com/node", clock, false)
 	tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/", true)
 	stx, _ := records.CreateStoredTransaction(clock, &helpers.SHA512Factory{}, helpers.RSASigner{}, nodeKey, tx)
-	if stx.NodeSig == nil {
+	if stx.Publisher == nil {
 		t.Fatalf("the stored transaction was not signed")
 	}
-	err := rsa.VerifyPSS(&nodeKey.PublicKey, crypto.SHA512, stx.TxID, stx.NodeSig, nil)
+	err := rsa.VerifyPSS(&nodeKey.PublicKey, crypto.SHA512, stx.TxID, stx.Publisher.Signature, nil)
 	if err != nil {
 		t.Fatalf("signature verification failed")
 	}
@@ -177,7 +178,7 @@ func TestTheReturnedTxIsSigned(t *testing.T) {
 
 func TestSubmittingACompleteTransactionStoresItImmediately(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
-	setup(t, clock, false)
+	setup(t, "https://test.com/node", clock, false)
 	h1 := hasher.AddMock("fred")
 	h1.AcceptAnything()
 	signer.SignAnythingAs("hello")

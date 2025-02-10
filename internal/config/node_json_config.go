@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/url"
 	"os"
+
+	"github.com/gmmapowell/ChainLedger/internal/storage"
 )
 
 type NodeJsonConfig struct {
@@ -25,6 +27,7 @@ type NodeConfigWrapper struct {
 	private *rsa.PrivateKey
 	public  *rsa.PublicKey
 	others  []NodeConfig
+	handler storage.RemoteStorer // only for remote nodes
 }
 
 // ListenOn implements LaunchableNodeConfig.
@@ -40,6 +43,15 @@ func (n *NodeConfigWrapper) Name() *url.URL {
 // OtherNodes implements LaunchableNodeConfig.
 func (n *NodeConfigWrapper) OtherNodes() []NodeConfig {
 	return n.others
+}
+
+func (n *NodeConfigWrapper) RemoteStorer(name string) storage.RemoteStorer {
+	for _, rn := range n.others {
+		if rn.Name().String() == name {
+			return rn.(*NodeConfigWrapper).handler
+		}
+	}
+	return nil
 }
 
 // PrivateKey implements LaunchableNodeConfig.
@@ -88,7 +100,7 @@ func ReadNodeConfig(file string) LaunchableNodeConfig {
 			panic("cannot parse public key after conversion from " + json.PublicKey)
 		}
 
-		others[i] = &NodeConfigWrapper{config: json, public: pub}
+		others[i] = &NodeConfigWrapper{config: json, public: pub, handler: storage.NewRemoteStorer(pub, storage.NewJournaller(json.Name))}
 	}
 	return &NodeConfigWrapper{config: config, url: url, private: pk, public: &pk.PublicKey, others: others}
 }

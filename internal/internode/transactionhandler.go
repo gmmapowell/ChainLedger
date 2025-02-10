@@ -5,10 +5,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gmmapowell/ChainLedger/internal/config"
 	"github.com/gmmapowell/ChainLedger/internal/records"
 )
 
 type TransactionHandler struct {
+	nodeConfig config.LaunchableNodeConfig
 }
 
 // ServeHTTP implements http.Handler.
@@ -21,12 +23,19 @@ func (t *TransactionHandler) ServeHTTP(resp http.ResponseWriter, req *http.Reque
 	log.Printf("have received an internode request length: %d\n", len(buf))
 	stx, err := records.UnmarshalBinaryStoredTransaction(buf)
 	if err != nil {
-		log.Printf("could not unpack the internode message")
+		log.Printf("could not unpack the internode message: %v\n", err)
 		return
 	}
 	log.Printf("unmarshalled message to: %v\n", stx)
+	publishedBy := stx.Publisher.Signer.String()
+	storer := t.nodeConfig.RemoteStorer(publishedBy)
+	if storer == nil {
+		log.Printf("could not find a handler for remote node %s\n", publishedBy)
+		return
+	}
+	storer.Handle(stx)
 }
 
-func NewTransactionHandler() *TransactionHandler {
-	return &TransactionHandler{}
+func NewTransactionHandler(c config.LaunchableNodeConfig) *TransactionHandler {
+	return &TransactionHandler{nodeConfig: c}
 }

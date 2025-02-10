@@ -11,8 +11,8 @@ type BinaryUnmarshallingBuffer struct {
 }
 
 func (b *BinaryUnmarshallingBuffer) ShouldBeDone() error {
-	if b.buf.Available() > 0 {
-		return fmt.Errorf("there were still bytes in the buffer at the end")
+	if b.buf.Len() > 0 {
+		return fmt.Errorf("there were still %d bytes in the buffer at the end", b.buf.Available())
 	}
 	return nil
 }

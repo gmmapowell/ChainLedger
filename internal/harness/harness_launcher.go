@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/gmmapowell/ChainLedger/internal/config"
+	"github.com/gmmapowell/ChainLedger/internal/storage"
 )
 
 type HarnessLauncher struct {
@@ -12,6 +13,7 @@ type HarnessLauncher struct {
 	launching *HarnessNode
 	private   *rsa.PrivateKey
 	public    *rsa.PublicKey
+	handlers  map[string]storage.RemoteStorer
 }
 
 // Name implements config.LaunchableNodeConfig.
@@ -41,6 +43,10 @@ func (h *HarnessLauncher) OtherNodes() []config.NodeConfig {
 		j++
 	}
 	return ret
+}
+
+func (h *HarnessLauncher) RemoteStorer(name string) storage.RemoteStorer {
+	return h.handlers[name]
 }
 
 // PrivateKey implements config.LaunchableNodeConfig.

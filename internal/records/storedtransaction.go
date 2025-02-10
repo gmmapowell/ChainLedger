@@ -17,7 +17,7 @@ type StoredTransaction struct {
 	ContentLink  *url.URL
 	ContentHash  types.Hash
 	Signatories  []*types.Signatory
-	NodeSig      types.Signature
+	Publisher    *types.Signatory
 }
 
 func (s *StoredTransaction) MarshalBinary() ([]byte, error) {
@@ -30,7 +30,7 @@ func (s *StoredTransaction) MarshalBinary() ([]byte, error) {
 	for _, sg := range s.Signatories {
 		sg.MarshalBinaryInto(ret)
 	}
-	s.NodeSig.MarshalBinaryInto(ret)
+	s.Publisher.MarshalBinaryInto(ret)
 	return ret.Bytes(), nil
 }
 
@@ -69,6 +69,10 @@ func UnmarshalBinaryStoredTransaction(bytes []byte) (*StoredTransaction, error) 
 			return nil, err
 		}
 	}
+	stx.Publisher, err = types.UnmarshalSignatoryFrom(buf)
+	if err != nil {
+		return nil, err
+	}
 	err = buf.ShouldBeDone()
 	if err != nil {
 		return nil, err
@@ -99,7 +103,7 @@ func CreateStoredTransaction(clock helpers.Clock, hasherFactory helpers.HasherFa
 	if err != nil {
 		return nil, err
 	}
-	ret.NodeSig = types.Signature(sig)
+	ret.Publisher = &types.Signatory{Signer: signer.SignerName(), Signature: sig}
 
 	return &ret, nil
 }

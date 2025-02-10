@@ -3,6 +3,8 @@ package harness
 import (
 	"crypto/rsa"
 	"net/url"
+
+	"github.com/gmmapowell/ChainLedger/internal/storage"
 )
 
 type HarnessRemote struct {
@@ -22,4 +24,8 @@ func (h *HarnessRemote) Name() *url.URL {
 // PublicKey implements config.NodeConfig.
 func (h *HarnessRemote) PublicKey() *rsa.PublicKey {
 	return h.public
+}
+
+func (h *HarnessRemote) Handler() storage.RemoteStorer {
+	return nil
 }

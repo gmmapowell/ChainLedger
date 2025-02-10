@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/gmmapowell/ChainLedger/internal/clienthandler"
@@ -15,5 +16,8 @@ func main() {
 	}
 	config := config.ReadNodeConfig(os.Args[1])
 	node := clienthandler.NewListenerNode(config)
-	node.Start()
+	err := node.Start()
+	if err != nil {
+		log.Fatalf("node did not start: %v", err)
+	}
 }

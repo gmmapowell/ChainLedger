@@ -29,7 +29,7 @@ func setup(t *testing.T) {
 	hasher = helpers.NewMockHasherFactory(t)
 	buildTo, _ = types.ParseTimestamp("2024-12-12_18:00:00.000")
 	mock1 = hasher.AddMock("computed-hash")
-	signer = helpers.NewMockSigner(t)
+	signer = helpers.NewMockSigner(t, nodeName)
 	prevID = types.Hash([]byte("previous-block"))
 	retHash = types.Hash([]byte("computed-hash"))
 	retSig = types.Signature([]byte("signed as"))

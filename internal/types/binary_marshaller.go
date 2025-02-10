@@ -37,6 +37,7 @@ func MarshalByteSliceInto(buf *BinaryMarshallingBuffer, bs []byte) {
 }
 
 func UnmarshalByteSliceFrom(buf *BinaryUnmarshallingBuffer) ([]byte, error) {
+	
 	ilen, err := buf.ReadInt32()
 	if err != nil {
 		return nil, err

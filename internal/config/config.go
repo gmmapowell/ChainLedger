@@ -3,6 +3,8 @@ package config
 import (
 	"crypto/rsa"
 	"net/url"
+
+	"github.com/gmmapowell/ChainLedger/internal/storage"
 )
 
 type NodeConfig interface {
@@ -15,4 +17,5 @@ type LaunchableNodeConfig interface {
 	ListenOn() string
 	PrivateKey() *rsa.PrivateKey
 	OtherNodes() []NodeConfig
+	RemoteStorer(string) storage.RemoteStorer
 }

@@ -11,7 +11,7 @@ import (
 func TestThatTwoThreadsCanSignDifferentFieldsAtTheSameTime(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
 	cc := helpers.NewChanCollector(t, 2)
-	setup(cc, clock, true)
+	setup(cc, "https://test.com/node", clock, true)
 
 	h1 := hasher.AddMock("fred")
 	h1.AcceptAnything()

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/gmmapowell/ChainLedger/internal/block"
 	"github.com/gmmapowell/ChainLedger/internal/config"
@@ -16,7 +17,7 @@ import (
 )
 
 type Node interface {
-	Start()
+	Start() error
 	Terminate()
 }
 
@@ -31,16 +32,22 @@ func (node *ListenerNode) Name() string {
 	return node.config.Name().String()
 }
 
-func (node *ListenerNode) Start() {
+func (node *ListenerNode) Start() error {
 	log.Printf("starting chainledger node %s\n", node.Name())
+	nodeUrl, err := url.Parse(node.Name())
+	if err != nil {
+		log.Printf("could not parse node name as url: %s\n", node.Name())
+		return err
+	}
 	clock := &helpers.ClockLive{}
 	hasher := &helpers.SHA512Factory{}
-	signer := &helpers.RSASigner{}
+	signer := &helpers.RSASigner{Name: nodeUrl}
 	pending := storage.NewMemoryPendingStorage()
 	resolver := NewResolver(clock, hasher, signer, node.config.PrivateKey(), pending)
 	node.journaller = storage.NewJournaller(node.Name())
 	node.runBlockBuilder(clock, node.journaller, node.config)
 	node.startAPIListener(resolver, node.journaller)
+	return nil
 }
 
 func (node *ListenerNode) Terminate() {
@@ -67,7 +74,7 @@ func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage
 	}
 	storeRecord := NewRecordStorage(resolver, journaller, senders)
 	cliapi.Handle("/store", storeRecord)
-	remoteTxHandler := internode.NewTransactionHandler()
+	remoteTxHandler := internode.NewTransactionHandler(node.config)
 	cliapi.Handle("/remotetx", remoteTxHandler)
 	node.server = &http.Server{Addr: node.config.ListenOn(), Handler: cliapi}
 	err := node.server.ListenAndServe()
