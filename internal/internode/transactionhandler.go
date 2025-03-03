@@ -27,7 +27,7 @@ func (t *TransactionHandler) ServeHTTP(resp http.ResponseWriter, req *http.Reque
 		log.Printf("could not unpack the internode message: %v\n", err)
 		return
 	}
-	log.Printf("unmarshalled message to: %v\n", stx)
+	log.Printf("unmarshalled tx message to: %v\n", stx)
 	publishedBy := stx.Publisher.Signer.String()
 	storer := t.nodeConfig.RemoteStorer(publishedBy)
 	if storer == nil {

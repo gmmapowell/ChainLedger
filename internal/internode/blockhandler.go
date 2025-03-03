@@ -27,7 +27,7 @@ func (t *BlockHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		log.Printf("could not unpack the internode block: %v\n", err)
 		return
 	}
-	log.Printf("unmarshalled message to: %v\n", block)
+	log.Printf("unmarshalled block message to: %v\n", block)
 	publishedBy := block.BuiltBy.String()
 	storer := t.nodeConfig.RemoteStorer(publishedBy)
 	if storer == nil {

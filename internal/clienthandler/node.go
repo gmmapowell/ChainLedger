@@ -18,12 +18,14 @@ import (
 
 type Node interface {
 	Start() error
+	ClientsDone()
 	Terminate()
 }
 
 type ListenerNode struct {
 	config     config.LaunchableNodeConfig
 	Control    types.PingBack
+	waitChan   types.Signal
 	server     *http.Server
 	journaller storage.Journaller
 }
@@ -54,11 +56,14 @@ func (node *ListenerNode) Start() error {
 	return nil
 }
 
+func (node *ListenerNode) ClientsDone() {
+	node.waitChan = make(types.Signal)
+	node.Control <- node.waitChan.Sender()
+}
+
 func (node *ListenerNode) Terminate() {
 	node.server.Shutdown(context.Background())
-	waitChan := make(types.Signal)
-	node.Control <- waitChan.Sender()
-	<-waitChan
+	<-node.waitChan
 	node.journaller.Quit()
 	log.Printf("node %s finished\n", node.Name())
 }

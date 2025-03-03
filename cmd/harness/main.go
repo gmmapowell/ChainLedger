@@ -31,6 +31,12 @@ func main() {
 	}
 
 	for _, n := range nodes {
+		n.ClientsDone()
+	}
+
+	time.Sleep(2 * time.Second)
+
+	for _, n := range nodes {
 		n.Terminate()
 	}
 
