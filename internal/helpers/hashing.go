@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"bytes"
 	"crypto/sha512"
 	"hash"
 
@@ -49,7 +48,7 @@ type MockHasher struct {
 	t         Fatals
 	hashesTo  string
 	accepting bool
-	blobs     []byte
+	blobs     types.Hash
 	written   []byte
 }
 
@@ -75,7 +74,7 @@ func (m MockHasher) Sum(b []byte) []byte {
 	if b != nil {
 		panic("mock always expects final block to be nil")
 	}
-	if !m.accepting && !bytes.Equal(m.blobs, m.written) {
+	if !m.accepting && !m.blobs.Is(m.written) {
 		m.t.Log("the written blobs were not the expected blobs")
 		m.t.Logf("expected: %v\n", m.blobs)
 		m.t.Logf("written:  %v\n", m.written)

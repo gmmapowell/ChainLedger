@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rsa"
 	"encoding/binary"
+	"fmt"
 	"net/url"
 
 	"github.com/gmmapowell/ChainLedger/internal/api"
@@ -18,6 +19,14 @@ type StoredTransaction struct {
 	ContentHash  types.Hash
 	Signatories  []*types.Signatory
 	Publisher    *types.Signatory
+}
+
+func (s *StoredTransaction) VerifySignature(hasher helpers.HasherFactory, signer helpers.Signer, pub *rsa.PublicKey) error {
+	txid := s.hashMe(hasher)
+	if !txid.Is(s.TxID) {
+		return fmt.Errorf("remote txid %s was not the result of computing it locally: %s", s.TxID.String(), txid.String())
+	}
+	return signer.Verify(pub, txid, s.Publisher.Signature)
 }
 
 func (s *StoredTransaction) MarshalBinary() ([]byte, error) {
@@ -83,21 +92,13 @@ func UnmarshalBinaryStoredTransaction(bytes []byte) (*StoredTransaction, error) 
 func CreateStoredTransaction(clock helpers.Clock, hasherFactory helpers.HasherFactory, signer helpers.Signer, nodeKey *rsa.PrivateKey, tx *api.Transaction) (*StoredTransaction, error) {
 	copyLink := *tx.ContentLink
 	ret := StoredTransaction{WhenReceived: clock.Time(), ContentLink: &copyLink, ContentHash: bytes.Clone(tx.ContentHash), Signatories: make([]*types.Signatory, len(tx.Signatories))}
-	hasher := hasherFactory.NewHasher()
-	binary.Write(hasher, binary.LittleEndian, ret.WhenReceived)
-	hasher.Write([]byte(ret.ContentLink.String()))
-	hasher.Write([]byte("\n"))
-	hasher.Write(tx.ContentHash)
 	for i, v := range tx.Signatories {
 		copySigner := *v.Signer
-		hasher.Write([]byte(copySigner.String()))
-		hasher.Write([]byte("\n"))
 		copySig := types.Signature(bytes.Clone(v.Signature))
-		hasher.Write(copySig)
 		signatory := types.Signatory{Signer: &copySigner, Signature: copySig}
 		ret.Signatories[i] = &signatory
 	}
-	ret.TxID = hasher.Sum(nil)
+	ret.TxID = ret.hashMe(hasherFactory)
 
 	sig, err := signer.Sign(nodeKey, ret.TxID)
 	if err != nil {
@@ -106,4 +107,18 @@ func CreateStoredTransaction(clock helpers.Clock, hasherFactory helpers.HasherFa
 	ret.Publisher = &types.Signatory{Signer: signer.SignerName(), Signature: sig}
 
 	return &ret, nil
+}
+
+func (stx *StoredTransaction) hashMe(hasherFactory helpers.HasherFactory) types.Hash {
+	hasher := hasherFactory.NewHasher()
+	binary.Write(hasher, binary.LittleEndian, stx.WhenReceived)
+	hasher.Write([]byte(stx.ContentLink.String()))
+	hasher.Write([]byte("\n"))
+	hasher.Write(stx.ContentHash)
+	for _, v := range stx.Signatories {
+		hasher.Write([]byte(v.Signer.String()))
+		hasher.Write([]byte("\n"))
+		hasher.Write(v.Signature)
+	}
+	return hasher.Sum(nil)
 }

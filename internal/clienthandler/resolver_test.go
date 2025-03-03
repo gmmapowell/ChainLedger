@@ -166,7 +166,7 @@ func TestTheReturnedTxIsSigned(t *testing.T) {
 	clock := helpers.ClockDoubleIsoTimes("2024-12-25_03:00:00.121")
 	setup(t, "https://test.com/node", clock, false)
 	tx := maketx("https://test.com/msg1", "hash", "https://user1.com/", true, "https://user2.com/", true)
-	stx, _ := records.CreateStoredTransaction(clock, &helpers.SHA512Factory{}, helpers.RSASigner{}, nodeKey, tx)
+	stx, _ := records.CreateStoredTransaction(clock, &helpers.SHA512Factory{}, &helpers.RSASigner{}, nodeKey, tx)
 	if stx.Publisher == nil {
 		t.Fatalf("the stored transaction was not signed")
 	}

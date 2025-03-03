@@ -1,6 +1,7 @@
 package internode
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -33,7 +34,10 @@ func (t *TransactionHandler) ServeHTTP(resp http.ResponseWriter, req *http.Reque
 		log.Printf("could not find a handler for remote node %s\n", publishedBy)
 		return
 	}
-	storer.Handle(stx)
+	err = storer.Handle(stx)
+	if err != nil {
+		panic(fmt.Sprintf("failed to store remote transaction: %v", err))
+	}
 }
 
 func NewTransactionHandler(c config.LaunchableNodeConfig) *TransactionHandler {

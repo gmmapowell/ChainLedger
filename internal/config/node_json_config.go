@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/storage"
 )
 
@@ -89,6 +90,9 @@ func ReadNodeConfig(file string) LaunchableNodeConfig {
 		panic("cannot parse private key after conversion from " + config.PrivateKey)
 	}
 
+	hf := helpers.SHA512Factory{}
+	sf := helpers.RSASigner{}
+
 	others := make([]NodeConfig, len(config.OtherNodes))
 	for i, json := range config.OtherNodes {
 		bs, err := base64.StdEncoding.DecodeString(json.PublicKey)
@@ -100,7 +104,7 @@ func ReadNodeConfig(file string) LaunchableNodeConfig {
 			panic("cannot parse public key after conversion from " + json.PublicKey)
 		}
 
-		others[i] = &NodeConfigWrapper{config: json, public: pub, handler: storage.NewRemoteStorer(pub, storage.NewJournaller(json.Name))}
+		others[i] = &NodeConfigWrapper{config: json, public: pub, handler: storage.NewRemoteStorer(hf, &sf, pub, storage.NewJournaller(json.Name))}
 	}
 	return &NodeConfigWrapper{config: config, url: url, private: pk, public: &pk.PublicKey, others: others}
 }

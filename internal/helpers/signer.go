@@ -13,6 +13,7 @@ import (
 type Signer interface {
 	Sign(pk *rsa.PrivateKey, hash types.Hash) (types.Signature, error)
 	SignerName() *url.URL
+	Verify(pub *rsa.PublicKey, hash types.Hash, sig types.Signature) error
 }
 
 type RSASigner struct {
@@ -23,12 +24,16 @@ func (s RSASigner) SignerName() *url.URL {
 	return s.Name
 }
 
-func (s RSASigner) Sign(pk *rsa.PrivateKey, hash types.Hash) (types.Signature, error) {
+func (s *RSASigner) Sign(pk *rsa.PrivateKey, hash types.Hash) (types.Signature, error) {
 	sig, err := rsa.SignPSS(rand.Reader, pk, crypto.SHA512, []byte(hash), nil)
 	if err != nil {
 		return nil, err
 	}
 	return sig, nil
+}
+
+func (s *RSASigner) Verify(pub *rsa.PublicKey, hash types.Hash, sig types.Signature) error {
+	return rsa.VerifyPSS(pub, crypto.SHA512, hash, sig, nil)
 }
 
 type MockSigner struct {
@@ -74,6 +79,10 @@ func (f *MockSigner) Sign(pk *rsa.PrivateKey, hash types.Hash) (types.Signature,
 	}
 	f.next++
 	return types.Signature(r.signature), nil
+}
+
+func (s *MockSigner) Verify(pub *rsa.PublicKey, hash types.Hash, sig types.Signature) error {
+	panic("unimplemented")
 }
 
 type MockExpectedSig struct {

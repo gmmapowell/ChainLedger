@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/gmmapowell/ChainLedger/internal/config"
+	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/storage"
 )
 
@@ -56,12 +57,15 @@ func (c *HarnessConfig) Launcher(forNode string) config.LaunchableNodeConfig {
 }
 
 func makeRemoteHandlers(c *HarnessConfig, name string) map[string]storage.RemoteStorer {
+	hf := helpers.SHA512Factory{}
+	sf := helpers.RSASigner{}
+
 	ret := make(map[string]storage.RemoteStorer)
 	for _, remote := range c.Nodes {
 		if remote.Name == name {
 			continue
 		}
-		ret[remote.Name] = storage.NewRemoteStorer(c.pubs[remote.Name], storage.NewJournaller(remote.Name))
+		ret[remote.Name] = storage.NewRemoteStorer(hf, &sf, c.pubs[remote.Name], storage.NewJournaller(remote.Name))
 	}
 	return ret
 }
