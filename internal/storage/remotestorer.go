@@ -9,7 +9,8 @@ import (
 )
 
 type RemoteStorer interface {
-	Handle(stx *records.StoredTransaction) error
+	StoreTx(stx *records.StoredTransaction) error
+	StoreBlock(block *records.Block) error
 }
 
 type CheckAndStore struct {
@@ -19,13 +20,17 @@ type CheckAndStore struct {
 	journal Journaller
 }
 
-func (cas *CheckAndStore) Handle(stx *records.StoredTransaction) error {
-	log.Printf("asked to check and store remote tx\n")
+func (cas *CheckAndStore) StoreTx(stx *records.StoredTransaction) error {
 	err := stx.VerifySignature(cas.hasher, cas.signer, cas.key)
 	if err != nil {
 		return err
 	}
-	return cas.journal.RecordTx(stx);
+	return cas.journal.RecordTx(stx)
+}
+
+func (r *CheckAndStore) StoreBlock(block *records.Block) error {
+	log.Printf("asked to check and store remote tx\n")
+	return nil
 }
 
 func NewRemoteStorer(hasher helpers.HasherFactory, signer helpers.Signer, key *rsa.PublicKey, journal Journaller) RemoteStorer {
