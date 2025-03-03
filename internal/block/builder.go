@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
+	"github.com/gmmapowell/ChainLedger/internal/internode"
 	"github.com/gmmapowell/ChainLedger/internal/records"
 	"github.com/gmmapowell/ChainLedger/internal/storage"
 	"github.com/gmmapowell/ChainLedger/internal/types"
@@ -25,6 +26,7 @@ type SleepBlockBuilder struct {
 	blocker    *Blocker
 	clock      helpers.Clock
 	control    types.PingBack
+	senders    []internode.BinarySender
 }
 
 func (builder *SleepBlockBuilder) Start() {
@@ -44,8 +46,7 @@ func (builder *SleepBlockBuilder) Run() {
 		select {
 		case pingback := <-builder.control:
 			log.Printf("%s asked to build final block and quit\n", builder.Name.String())
-			lastBlock = builder.buildBlock(prev, builder.clock.Time(), lastBlock)
-			builder.journaller.RecordBlock(lastBlock)
+			builder.buildRecordAndSend(prev, builder.clock.Time(), lastBlock)
 			pingback.Send()
 			return
 		case blocktime = <-timer:
@@ -53,10 +54,23 @@ func (builder *SleepBlockBuilder) Run() {
 			nowis := <-builder.clock.After(pause)
 			// we are ready to build a block
 			log.Printf("%s building block at %s\n", builder.Name.String(), nowis.IsoTime())
-			lastBlock = builder.buildBlock(prev, blocktime, lastBlock)
-			builder.journaller.RecordBlock(lastBlock)
+			lastBlock = builder.buildRecordAndSend(prev, blocktime, lastBlock)
 		}
 	}
+}
+
+func (builder *SleepBlockBuilder) buildRecordAndSend(prevTime types.Timestamp, currTime types.Timestamp, lastBlock *records.Block) *records.Block {
+	block := builder.buildBlock(prevTime, currTime, lastBlock)
+	builder.journaller.RecordBlock(block)
+	blob, err := block.MarshalBinary()
+	if err != nil {
+		log.Printf("Error marshalling block: %v %v\n", block.ID, err)
+		return block
+	}
+	for _, bs := range builder.senders {
+		go bs.Send("/remoteblock", blob)
+	}
+	return block
 }
 
 func (builder *SleepBlockBuilder) buildBlock(prev types.Timestamp, blocktime types.Timestamp, lastBlock *records.Block) *records.Block {
@@ -68,9 +82,9 @@ func (builder *SleepBlockBuilder) buildBlock(prev types.Timestamp, blocktime typ
 	return lastBlock
 }
 
-func NewBlockBuilder(clock helpers.Clock, journal storage.Journaller, url *url.URL, pk *rsa.PrivateKey, control types.PingBack) BlockBuilder {
+func NewBlockBuilder(clock helpers.Clock, journal storage.Journaller, url *url.URL, pk *rsa.PrivateKey, control types.PingBack, senders []internode.BinarySender) BlockBuilder {
 	hf := helpers.SHA512Factory{}
 	sf := helpers.RSASigner{}
 	blocker := NewBlocker(&hf, &sf, url, pk)
-	return &SleepBlockBuilder{Name: url, clock: clock, journaller: journal, blocker: blocker, control: control}
+	return &SleepBlockBuilder{Name: url, clock: clock, journaller: journal, blocker: blocker, control: control, senders: senders}
 }

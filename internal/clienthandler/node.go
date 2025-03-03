@@ -44,9 +44,13 @@ func (node *ListenerNode) Start() error {
 	signer := &helpers.RSASigner{Name: nodeUrl}
 	pending := storage.NewMemoryPendingStorage()
 	resolver := NewResolver(clock, hasher, signer, node.config.PrivateKey(), pending)
+	senders := make([]internode.BinarySender, len(node.config.OtherNodes()))
+	for i, n := range node.config.OtherNodes() {
+		senders[i] = internode.NewHttpBinarySender(n.Name())
+	}
 	node.journaller = storage.NewJournaller(node.Name())
-	node.runBlockBuilder(clock, node.journaller, node.config)
-	node.startAPIListener(resolver, node.journaller)
+	node.runBlockBuilder(clock, node.journaller, node.config, senders)
+	node.startAPIListener(resolver, node.journaller, senders)
 	return nil
 }
 
@@ -59,19 +63,15 @@ func (node *ListenerNode) Terminate() {
 	log.Printf("node %s finished\n", node.Name())
 }
 
-func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config config.LaunchableNodeConfig) {
-	builder := block.NewBlockBuilder(clock, journaller, config.Name(), config.PrivateKey(), node.Control)
+func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config config.LaunchableNodeConfig, senders []internode.BinarySender) {
+	builder := block.NewBlockBuilder(clock, journaller, config.Name(), config.PrivateKey(), node.Control, senders)
 	builder.Start()
 }
 
-func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage.Journaller) {
+func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage.Journaller, senders []internode.BinarySender) {
 	cliapi := http.NewServeMux()
 	pingMe := PingHandler{}
 	cliapi.Handle("/ping", pingMe)
-	senders := make([]internode.BinarySender, len(node.config.OtherNodes()))
-	for i, n := range node.config.OtherNodes() {
-		senders[i] = internode.NewHttpBinarySender(n.Name())
-	}
 	storeRecord := NewRecordStorage(resolver, journaller, senders)
 	cliapi.Handle("/store", storeRecord)
 	remoteTxHandler := internode.NewTransactionHandler(node.config)

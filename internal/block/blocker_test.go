@@ -54,6 +54,9 @@ func TestBuildingBlock0(t *testing.T) {
 	if !bytes.Equal(block0.ID, retHash) {
 		t.Fatalf("the computed hash was incorrect")
 	}
+	if block0.BuiltBy.String() != nodeName.String() {
+		t.Fatalf("the signer name was incorrect")
+	}
 	if !bytes.Equal(block0.Signature, retSig) {
 		t.Logf("expected sig: %v\n", retSig)
 		t.Logf("actual sig:   %v\n", block0.Signature)
@@ -79,6 +82,9 @@ func TestBuildingSubsequentBlockWithNoMessages(t *testing.T) {
 	}
 	if !bytes.Equal(block0.ID, retHash) {
 		t.Fatalf("the computed hash was incorrect")
+	}
+	if block0.BuiltBy.String() != nodeName.String() {
+		t.Fatalf("the signer name was incorrect")
 	}
 	if !bytes.Equal(block0.Signature, retSig) {
 		t.Logf("expected sig: %v\n", retSig)
@@ -113,6 +119,9 @@ func TestBuildingSubsequentBlockWithTwoMessages(t *testing.T) {
 	}
 	if !bytes.Equal(block0.ID, retHash) {
 		t.Fatalf("the computed hash was incorrect")
+	}
+	if block0.BuiltBy.String() != nodeName.String() {
+		t.Fatalf("the signer name was incorrect")
 	}
 	if !bytes.Equal(block0.Signature, retSig) {
 		t.Logf("expected sig: %v\n", retSig)
