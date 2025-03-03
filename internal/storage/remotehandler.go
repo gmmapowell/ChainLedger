@@ -25,7 +25,7 @@ func (cas *CheckAndStore) Handle(stx *records.StoredTransaction) error {
 	if err != nil {
 		return err
 	}
-	return nil
+	return cas.journal.RecordTx(stx);
 }
 
 func NewRemoteStorer(hasher helpers.HasherFactory, signer helpers.Signer, key *rsa.PublicKey, journal Journaller) RemoteStorer {
