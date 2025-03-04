@@ -11,6 +11,8 @@ import (
 type Journaller interface {
 	RecordTx(tx *records.StoredTransaction) error
 	RecordBlock(block *records.Block) error
+	HasBlock(id types.Hash) bool
+	CheckTxs(ids []types.Hash) []types.Hash
 	ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error)
 	Quit() error
 }
@@ -30,6 +32,14 @@ func (d *DummyJournaller) RecordBlock(block *records.Block) error {
 
 func (d DummyJournaller) ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error) {
 	return nil, nil
+}
+
+func (d *DummyJournaller) HasBlock(id types.Hash) bool {
+	return true
+}
+
+func (d *DummyJournaller) CheckTxs(ids []types.Hash) []types.Hash {
+	return nil
 }
 
 func (d *DummyJournaller) Quit() error {
@@ -64,6 +74,22 @@ func (d MemoryJournaller) ReadTransactionsBetween(from types.Timestamp, upto typ
 	d.tothread <- JournalRetrieveCommand{From: from, Upto: upto, ResultChan: messageMe}
 	ret := <-messageMe
 	return ret, nil
+}
+
+func (d *MemoryJournaller) HasBlock(id types.Hash) bool {
+	messageMe := make(chan bool)
+	d.finj.NextWaiter("journal-has-block")
+	d.tothread <- JournalHasBlockCommand{ID: id, ResultChan: messageMe}
+	ret := <-messageMe
+	return ret
+}
+
+func (d *MemoryJournaller) CheckTxs(ids []types.Hash) []types.Hash {
+	messageMe := make(chan []types.Hash)
+	d.finj.NextWaiter("journal-check-txs")
+	d.tothread <- JournalCheckTxsCommand{IDs: ids, ResultChan: messageMe}
+	ret := <-messageMe
+	return ret
 }
 
 func (d *MemoryJournaller) Quit() error {

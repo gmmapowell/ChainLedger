@@ -24,6 +24,16 @@ type JournalRetrieveCommand struct {
 	ResultChan chan<- []*records.StoredTransaction
 }
 
+type JournalHasBlockCommand struct {
+	ID         types.Hash
+	ResultChan chan<- bool
+}
+
+type JournalCheckTxsCommand struct {
+	IDs        []types.Hash
+	ResultChan chan<- []types.Hash
+}
+
 type JournalCheckCapacityCommand struct {
 	AtLeast    int
 	ResultChan chan<- bool
@@ -62,6 +72,35 @@ func LaunchJournalThread(name string, finj helpers.FaultInjection) chan<- Journa
 				ret := cap(txs) == len(txs) && cap(txs) >= v.AtLeast
 				log.Printf("checking capacity, returning %v\n", ret)
 				v.ResultChan <- ret
+			case JournalHasBlockCommand:
+				for _, b := range blocks {
+					if b.ID.Is(v.ID) {
+						v.ResultChan <- true
+						continue whenDone
+					}
+				}
+				v.ResultChan <- false
+			case JournalCheckTxsCommand:
+				tmp := make([]types.Hash, len(v.IDs))
+				copy(tmp, v.IDs)
+			nextTx:
+				// go through all the TXs we _do_ have
+				for _, tx := range txs {
+					// is it in the list they are asking about
+					for pos, id := range tmp {
+						if id.Is(tx.TxID) {
+							// if so, remove it and move on
+							tmp[pos] = tmp[len(tmp)-1]
+							tmp = tmp[:len(tmp)-1]
+							continue nextTx
+						}
+					}
+				}
+				if len(tmp) == 0 {
+					v.ResultChan <- nil
+				} else {
+					v.ResultChan <- tmp
+				}
 			case JournalDoneCommand:
 				log.Printf("was a done command %v\n", v)
 				v.NotifyMe <- struct{}{}
