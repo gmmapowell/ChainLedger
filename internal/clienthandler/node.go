@@ -12,6 +12,7 @@ import (
 	"github.com/gmmapowell/ChainLedger/internal/config"
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/internode"
+	"github.com/gmmapowell/ChainLedger/internal/loom"
 	"github.com/gmmapowell/ChainLedger/internal/storage"
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
@@ -52,6 +53,7 @@ func (node *ListenerNode) Start() error {
 	}
 	node.journaller = storage.NewJournaller(node.Name())
 	node.runBlockBuilder(clock, node.journaller, node.config, senders)
+	node.runLoom(clock)
 	node.startAPIListener(resolver, node.journaller, senders)
 	return nil
 }
@@ -71,6 +73,11 @@ func (node *ListenerNode) Terminate() {
 func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config config.LaunchableNodeConfig, senders []helpers.BinarySender) {
 	builder := block.NewBlockBuilder(clock, journaller, config.Name(), config.PrivateKey(), node.Control, senders)
 	builder.Start()
+}
+
+func (node ListenerNode) runLoom(clock helpers.Clock) {
+	l := loom.NewLoom(clock)
+	l.Start()
 }
 
 func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage.Journaller, senders []helpers.BinarySender) {

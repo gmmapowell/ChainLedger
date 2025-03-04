@@ -18,3 +18,8 @@ func (t *IntervalLoomThread) Start() {
 func (t *IntervalLoomThread) Run() {
 	t.loom.WeaveAt(t.clock.Time())
 }
+
+func NewLoom(clock helpers.Clock) LoomThread {
+	loom := &Loom{}
+	return &IntervalLoomThread{clock: clock, loom: loom}
+}
