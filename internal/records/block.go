@@ -1,10 +1,13 @@
 package records
 
 import (
+	"crypto/rsa"
+	"fmt"
 	"net/url"
 
 	"encoding/base64"
 
+	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
@@ -15,6 +18,26 @@ type Block struct {
 	UpUntil   types.Timestamp
 	Txs       []types.Hash
 	Signature types.Signature
+}
+
+func (b *Block) VerifySignature(hasher helpers.HasherFactory, signer helpers.Signer, pub *rsa.PublicKey) error {
+	id := b.HashMe(hasher)
+	if !id.Is(b.ID) {
+		return fmt.Errorf("remote block id %s was not the result of computing it locally: %s", b.ID.String(), id.String())
+	}
+	return signer.Verify(pub, id, b.Signature)
+}
+
+func (b *Block) HashMe(hf helpers.HasherFactory) types.Hash {
+	hasher := hf.NewHasher()
+	hasher.Write(b.PrevID)
+	hasher.Write([]byte(b.BuiltBy.String()))
+	hasher.Write([]byte("\n"))
+	hasher.Write(b.UpUntil.AsBytes())
+	for _, m := range b.Txs {
+		hasher.Write(m)
+	}
+	return hasher.Sum(nil)
 }
 
 func (b *Block) MarshalBinary() ([]byte, error) {

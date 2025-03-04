@@ -2,7 +2,6 @@ package storage
 
 import (
 	"crypto/rsa"
-	"log"
 
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/records"
@@ -28,8 +27,11 @@ func (cas *CheckAndStore) StoreTx(stx *records.StoredTransaction) error {
 	return cas.journal.RecordTx(stx)
 }
 
-func (r *CheckAndStore) StoreBlock(block *records.Block) error {
-	log.Printf("asked to check and store remote tx\n")
+func (cas *CheckAndStore) StoreBlock(block *records.Block) error {
+	err := block.VerifySignature(cas.hasher, cas.signer, cas.key)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

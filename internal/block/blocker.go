@@ -26,29 +26,26 @@ func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []*records.S
 	}
 	log.Printf("Building block before %s, following %s with %d records\n", to.IsoTime(), ls, len(txs))
 
-	hasher := b.hasher.NewHasher()
-	hasher.Write(lastID)
-	hasher.Write([]byte(b.name.String()))
-	hasher.Write([]byte("\n"))
-	hasher.Write(to.AsBytes())
-	for _, m := range txs {
-		hasher.Write(m.TxID)
+	txids := make([]types.Hash, len(txs))
+	for i, tx := range txs {
+		txids[i] = tx.TxID
 	}
-	hash := hasher.Sum(nil)
 
-	sig, err := b.signer.Sign(b.pk, types.Hash(hash))
+	block := &records.Block{
+		UpUntil: to,
+		BuiltBy: b.name,
+		PrevID:  lastID,
+		Txs:     txids,
+	}
+
+	var err error
+	block.ID = block.HashMe(b.hasher)
+	block.Signature, err = b.signer.Sign(b.pk, types.Hash(block.ID))
 	if err != nil {
 		return nil, err
 	}
 
-	return &records.Block{
-		ID:        hash,
-		UpUntil:   to,
-		BuiltBy:   b.name,
-		PrevID:    lastID,
-		Txs:       nil,
-		Signature: sig,
-	}, nil
+	return block, nil
 }
 
 func NewBlocker(hasher helpers.HasherFactory, signer helpers.Signer, name *url.URL, pk *rsa.PrivateKey) *Blocker {
