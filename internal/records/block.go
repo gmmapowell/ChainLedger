@@ -3,6 +3,7 @@ package records
 import (
 	"crypto/rsa"
 	"fmt"
+	"log"
 	"net/url"
 
 	"encoding/base64"
@@ -38,6 +39,17 @@ func (b *Block) HashMe(hf helpers.HasherFactory) types.Hash {
 		hasher.Write(m)
 	}
 	return hasher.Sum(nil)
+}
+
+func (b *Block) MarshalAndSend(senders []helpers.BinarySender) {
+	blob, err := b.MarshalBinary()
+	if err != nil {
+		log.Printf("Error marshalling block: %v %v\n", b.ID, err)
+		return
+	}
+	for _, bs := range senders {
+		go bs.Send("/remoteblock", blob)
+	}
 }
 
 func (b *Block) MarshalBinary() ([]byte, error) {

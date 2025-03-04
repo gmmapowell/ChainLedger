@@ -7,17 +7,17 @@ import (
 	"net/http"
 
 	"github.com/gmmapowell/ChainLedger/internal/api"
-	"github.com/gmmapowell/ChainLedger/internal/internode"
+	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/storage"
 )
 
 type RecordStorage struct {
 	resolver Resolver
 	journal  storage.Journaller
-	senders  []internode.BinarySender
+	senders  []helpers.BinarySender
 }
 
-func NewRecordStorage(r Resolver, j storage.Journaller, senders []internode.BinarySender) RecordStorage {
+func NewRecordStorage(r Resolver, j storage.Journaller, senders []helpers.BinarySender) RecordStorage {
 	return RecordStorage{resolver: r, journal: j, senders: senders}
 }
 

@@ -41,7 +41,7 @@ func (cas *CheckAndStore) StoreBlock(block *records.Block) error {
 	if missingTxs != nil {
 		return fmt.Errorf("block %v does not have %d txs", block.ID, len(missingTxs))
 	}
-	return nil
+	return cas.journal.RecordBlock(block)
 }
 
 func NewRemoteStorer(hasher helpers.HasherFactory, signer helpers.Signer, key *rsa.PublicKey, journal Journaller) RemoteStorer {

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
-	"github.com/gmmapowell/ChainLedger/internal/internode"
 	"github.com/gmmapowell/ChainLedger/internal/records"
 	"github.com/gmmapowell/ChainLedger/internal/storage"
 	"github.com/gmmapowell/ChainLedger/internal/types"
@@ -26,7 +25,7 @@ type SleepBlockBuilder struct {
 	blocker    *Blocker
 	clock      helpers.Clock
 	control    types.PingBack
-	senders    []internode.BinarySender
+	senders    []helpers.BinarySender
 }
 
 func (builder *SleepBlockBuilder) Start() {
@@ -41,6 +40,7 @@ func (builder *SleepBlockBuilder) Run() {
 		panic("error returned from building block 0")
 	}
 	builder.journaller.RecordBlock(lastBlock)
+	lastBlock.MarshalAndSend(builder.senders)
 	for {
 		prev := blocktime
 		select {
@@ -62,14 +62,7 @@ func (builder *SleepBlockBuilder) Run() {
 func (builder *SleepBlockBuilder) buildRecordAndSend(prevTime types.Timestamp, currTime types.Timestamp, lastBlock *records.Block) *records.Block {
 	block := builder.buildBlock(prevTime, currTime, lastBlock)
 	builder.journaller.RecordBlock(block)
-	blob, err := block.MarshalBinary()
-	if err != nil {
-		log.Printf("Error marshalling block: %v %v\n", block.ID, err)
-		return block
-	}
-	for _, bs := range builder.senders {
-		go bs.Send("/remoteblock", blob)
-	}
+	block.MarshalAndSend(builder.senders)
 	return block
 }
 
@@ -82,7 +75,7 @@ func (builder *SleepBlockBuilder) buildBlock(prev types.Timestamp, blocktime typ
 	return lastBlock
 }
 
-func NewBlockBuilder(clock helpers.Clock, journal storage.Journaller, url *url.URL, pk *rsa.PrivateKey, control types.PingBack, senders []internode.BinarySender) BlockBuilder {
+func NewBlockBuilder(clock helpers.Clock, journal storage.Journaller, url *url.URL, pk *rsa.PrivateKey, control types.PingBack, senders []helpers.BinarySender) BlockBuilder {
 	hf := helpers.SHA512Factory{}
 	sf := helpers.RSASigner{}
 	blocker := NewBlocker(&hf, &sf, url, pk)

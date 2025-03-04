@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+
+	"github.com/gmmapowell/ChainLedger/internal/helpers"
 )
 
 type HttpBinarySender struct {
@@ -24,6 +26,6 @@ func (h *HttpBinarySender) Send(path string, blob []byte) {
 	}
 }
 
-func NewHttpBinarySender(url *url.URL) BinarySender {
+func NewHttpBinarySender(url *url.URL) helpers.BinarySender {
 	return &HttpBinarySender{cli: &http.Client{}, url: url}
 }

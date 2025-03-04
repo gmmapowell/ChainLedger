@@ -46,7 +46,7 @@ func (node *ListenerNode) Start() error {
 	signer := &helpers.RSASigner{Name: nodeUrl}
 	pending := storage.NewMemoryPendingStorage()
 	resolver := NewResolver(clock, hasher, signer, node.config.PrivateKey(), pending)
-	senders := make([]internode.BinarySender, len(node.config.OtherNodes()))
+	senders := make([]helpers.BinarySender, len(node.config.OtherNodes()))
 	for i, n := range node.config.OtherNodes() {
 		senders[i] = internode.NewHttpBinarySender(n.Name())
 	}
@@ -68,12 +68,12 @@ func (node *ListenerNode) Terminate() {
 	log.Printf("node %s finished\n", node.Name())
 }
 
-func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config config.LaunchableNodeConfig, senders []internode.BinarySender) {
+func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config config.LaunchableNodeConfig, senders []helpers.BinarySender) {
 	builder := block.NewBlockBuilder(clock, journaller, config.Name(), config.PrivateKey(), node.Control, senders)
 	builder.Start()
 }
 
-func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage.Journaller, senders []internode.BinarySender) {
+func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage.Journaller, senders []helpers.BinarySender) {
 	cliapi := http.NewServeMux()
 	pingMe := PingHandler{}
 	cliapi.Handle("/ping", pingMe)
