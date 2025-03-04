@@ -13,6 +13,8 @@ type Journaller interface {
 	RecordBlock(block *records.Block) error
 	HasBlock(id types.Hash) bool
 	CheckTxs(ids []types.Hash) []types.Hash
+	HasWeaveAt(when types.Timestamp) bool
+	StoreWeave(weave *records.Weave)
 	ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error)
 	Quit() error
 }
@@ -40,6 +42,13 @@ func (d *DummyJournaller) HasBlock(id types.Hash) bool {
 
 func (d *DummyJournaller) CheckTxs(ids []types.Hash) []types.Hash {
 	return nil
+}
+
+func (d *DummyJournaller) HasWeaveAt(when types.Timestamp) bool {
+	return false
+}
+
+func (d *DummyJournaller) StoreWeave(weave *records.Weave) {
 }
 
 func (d *DummyJournaller) Quit() error {
@@ -90,6 +99,19 @@ func (d *MemoryJournaller) CheckTxs(ids []types.Hash) []types.Hash {
 	d.tothread <- JournalCheckTxsCommand{IDs: ids, ResultChan: messageMe}
 	ret := <-messageMe
 	return ret
+}
+
+func (d *MemoryJournaller) HasWeaveAt(when types.Timestamp) bool {
+	messageMe := make(chan bool)
+	d.finj.NextWaiter("journal-has-weave-at")
+	d.tothread <- JournalHasWeaveAtCommand{When: when, ResultChan: messageMe}
+	ret := <-messageMe
+	return ret
+}
+
+func (d *MemoryJournaller) StoreWeave(weave *records.Weave) {
+	d.finj.NextWaiter("journal-store-weave")
+	d.tothread <- JournalStoreWeaveCommand{Weave: weave}
 }
 
 func (d *MemoryJournaller) Quit() error {

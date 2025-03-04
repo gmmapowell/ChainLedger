@@ -26,6 +26,10 @@ func (h *HarnessLauncher) PublicKey() *rsa.PublicKey {
 	return &h.config.keys[h.launching.Name].PublicKey
 }
 
+func (h *HarnessLauncher) WeaveInterval() int {
+	return h.config.WeaveInterval
+}
+
 // ListenOn implements config.LaunchableNodeConfig.
 func (h *HarnessLauncher) ListenOn() string {
 	return h.launching.ListenOn

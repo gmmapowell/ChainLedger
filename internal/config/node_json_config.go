@@ -36,6 +36,10 @@ func (n *NodeConfigWrapper) ListenOn() string {
 	return n.config.ListenOn
 }
 
+func (n *NodeConfigWrapper) WeaveInterval() int {
+	panic("not implemented")
+}
+
 // Name implements LaunchableNodeConfig.
 func (n *NodeConfigWrapper) Name() *url.URL {
 	return n.url

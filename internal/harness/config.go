@@ -21,9 +21,10 @@ type Config interface {
 }
 
 type HarnessConfig struct {
-	Nodes []*HarnessNode
-	keys  map[string]*rsa.PrivateKey
-	pubs  map[string]*rsa.PublicKey
+	WeaveInterval int
+	Nodes         []*HarnessNode
+	keys          map[string]*rsa.PrivateKey
+	pubs          map[string]*rsa.PublicKey
 }
 
 type HarnessNode struct {

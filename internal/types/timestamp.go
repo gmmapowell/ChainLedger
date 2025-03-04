@@ -39,3 +39,10 @@ func UnmarshalTimestampFrom(buf *BinaryUnmarshallingBuffer) (Timestamp, error) {
 	}
 	return Timestamp(i64), nil
 }
+
+func (ts Timestamp) RoundTime(granularity int) Timestamp {
+	i64 := int64(ts)
+	i64 /= int64(granularity)
+	i64 *= int64(granularity)
+	return Timestamp(i64)
+}

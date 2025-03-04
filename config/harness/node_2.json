@@ -1,4 +1,5 @@
 {
+	"weaveInterval": 1000,
 	"nodes": [{
 		"name": "http://localhost:5001",
 		"listenOn": ":5001",

@@ -76,7 +76,7 @@ func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage
 }
 
 func (node ListenerNode) runLoom(clock helpers.Clock) {
-	l := loom.NewLoom(clock)
+	l := loom.NewLoomThread(clock, node.config.Name().String(), node.config.WeaveInterval(), node.journaller)
 	l.Start()
 }
 

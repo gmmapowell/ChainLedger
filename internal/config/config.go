@@ -14,6 +14,7 @@ type NodeConfig interface {
 
 type LaunchableNodeConfig interface {
 	NodeConfig
+	WeaveInterval() int
 	ListenOn() string
 	PrivateKey() *rsa.PrivateKey
 	OtherNodes() []NodeConfig

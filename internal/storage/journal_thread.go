@@ -34,6 +34,15 @@ type JournalCheckTxsCommand struct {
 	ResultChan chan<- []types.Hash
 }
 
+type JournalHasWeaveAtCommand struct {
+	When       types.Timestamp
+	ResultChan chan<- bool
+}
+
+type JournalStoreWeaveCommand struct {
+	Weave *records.Weave
+}
+
 type JournalCheckCapacityCommand struct {
 	AtLeast    int
 	ResultChan chan<- bool
@@ -46,6 +55,7 @@ type JournalDoneCommand struct {
 func LaunchJournalThread(name string, finj helpers.FaultInjection) chan<- JournalCommand {
 	var txs []*records.StoredTransaction
 	var blocks []*records.Block
+	weaves := make(map[types.Timestamp]*records.Weave)
 	ret := make(chan JournalCommand, 20)
 	log.Printf("launching new journal thread with channel %p\n", ret)
 	go func() {
@@ -101,6 +111,10 @@ func LaunchJournalThread(name string, finj helpers.FaultInjection) chan<- Journa
 				} else {
 					v.ResultChan <- tmp
 				}
+			case JournalHasWeaveAtCommand:
+				v.ResultChan <- weaves[v.When] != nil
+			case JournalStoreWeaveCommand:
+				weaves[v.Weave.ConsistentAt] = v.Weave
 			case JournalDoneCommand:
 				log.Printf("was a done command %v\n", v)
 				v.NotifyMe <- struct{}{}
