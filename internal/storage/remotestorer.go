@@ -33,13 +33,15 @@ func (cas *CheckAndStore) StoreBlock(block *records.Block) error {
 	if err != nil {
 		return err
 	}
-	hasBlock := cas.journal.HasBlock(block.PrevID)
-	if !hasBlock {
-		return fmt.Errorf("block %v does not have prev %v", block.ID, block.PrevID)
-	}
-	missingTxs := cas.journal.CheckTxs(block.Txs)
-	if missingTxs != nil {
-		return fmt.Errorf("block %v does not have %d txs", block.ID, len(missingTxs))
+	if len(block.PrevID) > 0 {
+		hasBlock := cas.journal.HasBlock(block.PrevID)
+		if !hasBlock {
+			return fmt.Errorf("block %v does not have prev %v", block.ID, block.PrevID)
+		}
+		missingTxs := cas.journal.CheckTxs(block.Txs)
+		if missingTxs != nil {
+			return fmt.Errorf("block %v does not have %d txs", block.ID, len(missingTxs))
+		}
 	}
 	return cas.journal.RecordBlock(block)
 }
