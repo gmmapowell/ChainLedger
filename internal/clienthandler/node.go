@@ -93,6 +93,8 @@ func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage
 	cliapi.Handle("/remotetx", remoteTxHandler)
 	remoteBlockHandler := internode.NewBlockHandler(node.config)
 	cliapi.Handle("/remoteblock", remoteBlockHandler)
+	remoteWeaveHandler := internode.NewWeaveHandler(node.config)
+	cliapi.Handle("/remoteweave", remoteWeaveHandler)
 	node.server = &http.Server{Addr: node.config.ListenOn(), Handler: cliapi}
 	err := node.server.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {

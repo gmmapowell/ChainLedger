@@ -22,3 +22,15 @@ func (n *NodeBlock) MarshalBinaryInto(into *types.BinaryMarshallingBuffer) error
 	n.LatestBlockID.MarshalBinaryInto(into)
 	return nil
 }
+
+func UnmarshalBinaryNodeBlock(buf *types.BinaryUnmarshallingBuffer) (NodeBlock, error) {
+	ret := NodeBlock{}
+	var err error
+	ret.NodeName, err = types.UnmarshalStringFrom(buf)
+	if err != nil {
+		return ret, err
+	}
+	ret.LatestBlockID, err = types.UnmarshalHashFrom(buf)
+
+	return ret, err
+}

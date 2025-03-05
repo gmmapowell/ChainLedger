@@ -2,6 +2,7 @@ package records
 
 import (
 	"log"
+	"net/url"
 
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/types"
@@ -62,4 +63,54 @@ func (w *Weave) MarshalBinary(node string, sig types.Signature) ([]byte, error) 
 	sig.MarshalBinaryInto(ret)
 
 	return ret.Bytes(), nil
+}
+
+func UnmarshalBinaryWeave(bytes []byte) (*Weave, *types.Signatory, error) {
+	weave := Weave{}
+	buf := types.NewBinaryUnmarshallingBuffer(bytes)
+	var err error
+	weave.ID, err = types.UnmarshalHashFrom(buf)
+	if err != nil {
+		return nil, nil, err
+	}
+	weave.ConsistentAt, err = types.UnmarshalTimestampFrom(buf)
+	if err != nil {
+		return nil, nil, err
+	}
+	weave.PrevID, err = types.UnmarshalHashFrom(buf)
+	if err != nil {
+		return nil, nil, err
+	}
+	nblks, err := types.UnmarshalInt32From(buf)
+	if err != nil {
+		return nil, nil, err
+	}
+	weave.LatestBlocks = make([]NodeBlock, nblks)
+	for i := 0; i < int(nblks); i++ {
+		weave.LatestBlocks[i], err = UnmarshalBinaryNodeBlock(buf)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	signer := types.Signatory{}
+	cls, err := types.UnmarshalStringFrom(buf)
+	if err != nil {
+		return nil, nil, err
+	}
+	signer.Signer, err = url.Parse(cls)
+	if err != nil {
+		return nil, nil, err
+	}
+	signer.Signature, err = types.UnmarshalSignatureFrom(buf)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = buf.ShouldBeDone()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &weave, &signer, nil
 }
