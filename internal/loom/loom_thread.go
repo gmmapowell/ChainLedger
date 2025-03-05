@@ -1,6 +1,7 @@
 package loom
 
 import (
+	"crypto/rsa"
 	"log"
 	"time"
 
@@ -16,6 +17,9 @@ type LoomThread interface {
 type IntervalLoomThread struct {
 	clock     helpers.Clock
 	myjournal storage.Journaller
+	signer    helpers.Signer
+	pk        *rsa.PrivateKey
+	senders   []helpers.BinarySender
 	interval  int
 	control   <-chan string
 	loom      *Loom
@@ -42,7 +46,13 @@ func (t *IntervalLoomThread) Run() {
 				weave := t.loom.WeaveAt(weaveBefore, prev)
 				if weave != nil {
 					t.myjournal.StoreWeave(weave)
-					log.Printf("%s wove at %v: %s\n", t.loom.Name(), weaveBefore, weave.ID.String())
+					signature, err := t.signer.Sign(t.pk, weave.ID)
+					if err != nil {
+						log.Printf("%s failed to sign weave %v\n", t.loom.Name(), weave.ID)
+					} else {
+						log.Printf("%s wove at %v: %s\n", t.loom.Name(), weaveBefore, weave.ID.String())
+						weave.MarshalAndSend(t.senders, t.loom.Name(), signature)
+					}
 					// weave.LogMe(t.loom.Name())
 					prev = weave
 				} else {
@@ -54,6 +64,6 @@ func (t *IntervalLoomThread) Run() {
 	}
 }
 
-func NewLoomThread(clock helpers.Clock, myname string, control <-chan string, interval int, loom *Loom, myjournal storage.Journaller) LoomThread {
-	return &IntervalLoomThread{clock: clock, control: control, loom: loom, myjournal: myjournal, interval: interval}
+func NewLoomThread(clock helpers.Clock, myname string, control <-chan string, interval int, loom *Loom, myjournal storage.Journaller, signer helpers.Signer, pk *rsa.PrivateKey, senders []helpers.BinarySender) LoomThread {
+	return &IntervalLoomThread{clock: clock, control: control, loom: loom, myjournal: myjournal, signer: signer, pk: pk, senders: senders, interval: interval}
 }

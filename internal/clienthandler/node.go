@@ -53,8 +53,8 @@ func (node *ListenerNode) Start() error {
 		senders[i] = internode.NewHttpBinarySender(n.Name())
 	}
 	node.journaller = node.config.AllJournals()[node.Name()]
-	node.runBlockBuilder(clock, node.journaller, node.config, senders)
-	node.runLoom(clock, hasher, node.config.AllJournals())
+	node.runBlockBuilder(clock, node.journaller, node.config, hasher, signer, senders)
+	node.runLoom(clock, hasher, signer, node.config.AllJournals(), senders)
 	node.startAPIListener(resolver, node.journaller, senders)
 	return nil
 }
@@ -72,14 +72,14 @@ func (node *ListenerNode) Terminate() {
 	log.Printf("node %s finished\n", node.Name())
 }
 
-func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config config.LaunchableNodeConfig, senders []helpers.BinarySender) {
-	builder := block.NewBlockBuilder(clock, journaller, config.Name(), config.PrivateKey(), node.BlockerControl, senders)
+func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config config.LaunchableNodeConfig, hasher helpers.HasherFactory, signer helpers.Signer, senders []helpers.BinarySender) {
+	builder := block.NewBlockBuilder(clock, journaller, config.Name(), config.PrivateKey(), node.BlockerControl, hasher, signer, senders)
 	builder.Start()
 }
 
-func (node ListenerNode) runLoom(clock helpers.Clock, hasher helpers.HasherFactory, allJournals map[string]storage.Journaller) {
+func (node ListenerNode) runLoom(clock helpers.Clock, hasher helpers.HasherFactory, signer helpers.Signer, allJournals map[string]storage.Journaller, senders []helpers.BinarySender) {
 	theloom := loom.NewLoom(hasher, node.Name(), allJournals)
-	l := loom.NewLoomThread(clock, node.config.Name().String(), node.LoomControl, node.config.WeaveInterval(), theloom, node.journaller)
+	l := loom.NewLoomThread(clock, node.config.Name().String(), node.LoomControl, node.config.WeaveInterval(), theloom, node.journaller, signer, node.config.PrivateKey(), senders)
 	l.Start()
 }
 

@@ -75,9 +75,7 @@ func (builder *SleepBlockBuilder) buildBlock(prev types.Timestamp, blocktime typ
 	return lastBlock
 }
 
-func NewBlockBuilder(clock helpers.Clock, journal storage.Journaller, url *url.URL, pk *rsa.PrivateKey, control types.PingBack, senders []helpers.BinarySender) BlockBuilder {
-	hf := helpers.SHA512Factory{}
-	sf := helpers.RSASigner{}
-	blocker := NewBlocker(&hf, &sf, url, pk)
+func NewBlockBuilder(clock helpers.Clock, journal storage.Journaller, url *url.URL, pk *rsa.PrivateKey, control types.PingBack, hf helpers.HasherFactory, sf helpers.Signer, senders []helpers.BinarySender) BlockBuilder {
+	blocker := NewBlocker(hf, sf, url, pk)
 	return &SleepBlockBuilder{Name: url, clock: clock, journaller: journal, blocker: blocker, control: control, senders: senders}
 }
