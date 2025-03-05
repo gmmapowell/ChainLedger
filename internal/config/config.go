@@ -20,4 +20,5 @@ type LaunchableNodeConfig interface {
 	OtherNodes() []NodeConfig
 	RemoteStorer(string) storage.RemoteStorer
 	AllJournals() map[string]storage.Journaller
+	Consolidator() *storage.WeaveConsolidator
 }

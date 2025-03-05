@@ -9,12 +9,13 @@ import (
 )
 
 type HarnessLauncher struct {
-	config      *HarnessConfig
-	launching   *HarnessNode
-	private     *rsa.PrivateKey
-	public      *rsa.PublicKey
-	handlers    map[string]storage.RemoteStorer
-	allJournals map[string]storage.Journaller
+	config       *HarnessConfig
+	launching    *HarnessNode
+	private      *rsa.PrivateKey
+	public       *rsa.PublicKey
+	handlers     map[string]storage.RemoteStorer
+	consolidator *storage.WeaveConsolidator
+	allJournals  map[string]storage.Journaller
 }
 
 // Name implements config.LaunchableNodeConfig.
@@ -50,6 +51,9 @@ func (h *HarnessLauncher) OtherNodes() []config.NodeConfig {
 	return ret
 }
 
+func (n *HarnessLauncher) Consolidator() *storage.WeaveConsolidator {
+	return n.consolidator
+}
 func (n *HarnessLauncher) AllJournals() map[string]storage.Journaller {
 	return n.allJournals
 }

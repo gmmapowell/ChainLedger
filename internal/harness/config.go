@@ -23,6 +23,7 @@ type Config interface {
 type HarnessConfig struct {
 	WeaveInterval int
 	Nodes         []*HarnessNode
+	launched      map[string]config.LaunchableNodeConfig
 	keys          map[string]*rsa.PrivateKey
 	pubs          map[string]*rsa.PublicKey
 }
@@ -49,12 +50,18 @@ func (c *HarnessConfig) NodeNames() []string {
 }
 
 func (c *HarnessConfig) Launcher(forNode string) config.LaunchableNodeConfig {
+	ret := c.launched[forNode]
+	if ret != nil {
+		return ret
+	}
 	for _, n := range c.Nodes {
 		if n.Name == forNode {
-			consolidator := storage.NewWeaveConsolidator(forNode)
+			consolidator := storage.NewWeaveConsolidator(forNode, len(c.NodeNames()))
 			journals := makeAllJournals(c, forNode, consolidator)
 			handlers := makeRemoteHandlers(c, n.Name, journals)
-			return &HarnessLauncher{config: c, launching: n, private: c.keys[n.Name], public: &c.keys[n.Name].PublicKey, allJournals: journals, handlers: handlers}
+			ret = &HarnessLauncher{config: c, launching: n, private: c.keys[n.Name], public: &c.keys[n.Name].PublicKey, consolidator: consolidator, allJournals: journals, handlers: handlers}
+			c.launched[forNode] = ret
+			return ret
 		}
 	}
 	panic("no node found for " + forNode)
@@ -114,6 +121,7 @@ func ReadConfig(file string) Config {
 	json.Unmarshal(bytes, &ret)
 	ret.keys = make(map[string]*rsa.PrivateKey)
 	ret.pubs = make(map[string]*rsa.PublicKey)
+	ret.launched = make(map[string]config.LaunchableNodeConfig)
 
 	for _, n := range ret.Nodes {
 		name := n.Name

@@ -23,13 +23,14 @@ type NodeJsonConfig struct {
 }
 
 type NodeConfigWrapper struct {
-	config      NodeJsonConfig
-	url         *url.URL
-	private     *rsa.PrivateKey
-	public      *rsa.PublicKey
-	others      []NodeConfig
-	handler     storage.RemoteStorer // only for remote nodes
-	allJournals map[string]storage.Journaller
+	config       NodeJsonConfig
+	url          *url.URL
+	private      *rsa.PrivateKey
+	public       *rsa.PublicKey
+	others       []NodeConfig
+	handler      storage.RemoteStorer // only for remote nodes
+	consolidator *storage.WeaveConsolidator
+	allJournals  map[string]storage.Journaller
 }
 
 // ListenOn implements LaunchableNodeConfig.
@@ -70,6 +71,10 @@ func (n *NodeConfigWrapper) PublicKey() *rsa.PublicKey {
 	return n.public
 }
 
+func (n *NodeConfigWrapper) Consolidator() *storage.WeaveConsolidator {
+	return n.consolidator
+}
+
 func (n *NodeConfigWrapper) AllJournals() map[string]storage.Journaller {
 	return n.allJournals
 }
@@ -101,7 +106,7 @@ func ReadNodeConfig(file string) LaunchableNodeConfig {
 
 	hf := helpers.SHA512Factory{}
 	sf := helpers.RSASigner{}
-	consolidator := storage.NewWeaveConsolidator(config.Name)
+	consolidator := storage.NewWeaveConsolidator(config.Name, len(config.OtherNodes)+1)
 
 	others := make([]NodeConfig, len(config.OtherNodes))
 	journals := make(map[string]storage.Journaller)
@@ -119,5 +124,5 @@ func ReadNodeConfig(file string) LaunchableNodeConfig {
 		journals[json.Name] = storage.NewJournaller(json.Name, config.Name, consolidator)
 		others[i] = &NodeConfigWrapper{config: json, public: pub, handler: storage.NewRemoteStorer(hf, &sf, pub, journals[json.Name])}
 	}
-	return &NodeConfigWrapper{config: config, url: url, private: pk, public: &pk.PublicKey, allJournals: journals, others: others}
+	return &NodeConfigWrapper{config: config, url: url, private: pk, public: &pk.PublicKey, consolidator: consolidator, allJournals: journals, others: others}
 }

@@ -34,7 +34,23 @@ func main() {
 		n.ClientsDone()
 	}
 
-	time.Sleep(2 * time.Second)
+	handsUp := make([]chan bool, len(nodes))
+	for k, n := range config.NodeNames() {
+		launcher := config.Launcher(n)
+		handsUp[k] = make(chan bool)
+		launcher.Consolidator().NotifyMeWhenStable(handsUp[k])
+	}
+	timeout := time.After(5 * time.Second)
+outer:
+	for k, c := range handsUp {
+		select {
+		case <-timeout:
+			log.Printf("did not consolidate after 5s")
+			break outer
+		case worked := <-c:
+			log.Printf("consolidator %d notified me: %v", k, worked)
+		}
+	}
 
 	for _, n := range nodes {
 		n.Terminate()
