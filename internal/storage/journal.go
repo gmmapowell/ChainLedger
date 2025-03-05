@@ -151,12 +151,12 @@ func (d *MemoryJournaller) AtCapacityWithAtLeast(n int) bool {
 	return <-messageMe
 }
 
-func NewJournaller(forNode string, onNode string) Journaller {
-	return TestJournaller(forNode, onNode, helpers.IgnoreFaultInjection())
+func NewJournaller(forNode string, onNode string, consolidator *WeaveConsolidator) Journaller {
+	return TestJournaller(forNode, onNode, consolidator, helpers.IgnoreFaultInjection())
 }
 
-func TestJournaller(forNode string, onNode string, finj helpers.FaultInjection) Journaller {
+func TestJournaller(forNode string, onNode string, consolidator *WeaveConsolidator, finj helpers.FaultInjection) Journaller {
 	ret := MemoryJournaller{name: forNode, finj: finj}
-	ret.tothread = LaunchJournalThread(forNode, onNode, finj)
+	ret.tothread = LaunchJournalThread(forNode, onNode, consolidator, finj)
 	return &ret
 }

@@ -51,7 +51,8 @@ func (c *HarnessConfig) NodeNames() []string {
 func (c *HarnessConfig) Launcher(forNode string) config.LaunchableNodeConfig {
 	for _, n := range c.Nodes {
 		if n.Name == forNode {
-			journals := makeAllJournals(c, forNode)
+			consolidator := storage.NewWeaveConsolidator(forNode)
+			journals := makeAllJournals(c, forNode, consolidator)
 			handlers := makeRemoteHandlers(c, n.Name, journals)
 			return &HarnessLauncher{config: c, launching: n, private: c.keys[n.Name], public: &c.keys[n.Name].PublicKey, allJournals: journals, handlers: handlers}
 		}
@@ -59,10 +60,10 @@ func (c *HarnessConfig) Launcher(forNode string) config.LaunchableNodeConfig {
 	panic("no node found for " + forNode)
 }
 
-func makeAllJournals(c *HarnessConfig, myName string) map[string]storage.Journaller {
+func makeAllJournals(c *HarnessConfig, myName string, consolidator *storage.WeaveConsolidator) map[string]storage.Journaller {
 	ret := make(map[string]storage.Journaller)
 	for _, remote := range c.Nodes {
-		ret[remote.Name] = storage.NewJournaller(remote.Name, myName)
+		ret[remote.Name] = storage.NewJournaller(remote.Name, myName, consolidator)
 	}
 	return ret
 }

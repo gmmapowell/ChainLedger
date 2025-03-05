@@ -63,7 +63,7 @@ type JournalDoneCommand struct {
 	NotifyMe chan<- struct{}
 }
 
-func LaunchJournalThread(name string, onNode string, finj helpers.FaultInjection) chan<- JournalCommand {
+func LaunchJournalThread(name string, onNode string, consolidator *WeaveConsolidator, finj helpers.FaultInjection) chan<- JournalCommand {
 	var txs []*records.StoredTransaction
 	var blocks []*records.Block
 	weaves := make(map[types.Timestamp]*records.Weave)
@@ -127,6 +127,9 @@ func LaunchJournalThread(name string, onNode string, finj helpers.FaultInjection
 				v.ResultChan <- weaves[v.When] != nil
 			case JournalStoreWeaveCommand:
 				weaves[v.Weave.ConsistentAt] = v.Weave
+				if name == onNode {
+					consolidator.LocalWeave(v.Weave)
+				}
 			case JournalLatestBlockByCommand:
 				var last types.Hash
 				var lastWhen types.Timestamp
@@ -142,6 +145,7 @@ func LaunchJournalThread(name string, onNode string, finj helpers.FaultInjection
 					log.Printf("duplicate signature for weave at %d", v.When)
 				} else {
 					sigs[v.When] = v.Signature
+					consolidator.SignedWeave(v.When, v.ID, name, v.Signature)
 				}
 			case JournalDoneCommand:
 				log.Printf("was a done command %v\n", v)

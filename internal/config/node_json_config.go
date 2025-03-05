@@ -101,10 +101,11 @@ func ReadNodeConfig(file string) LaunchableNodeConfig {
 
 	hf := helpers.SHA512Factory{}
 	sf := helpers.RSASigner{}
+	consolidator := storage.NewWeaveConsolidator(config.Name)
 
 	others := make([]NodeConfig, len(config.OtherNodes))
 	journals := make(map[string]storage.Journaller)
-	journals[config.Name] = storage.NewJournaller(config.Name, config.Name)
+	journals[config.Name] = storage.NewJournaller(config.Name, config.Name, consolidator)
 	for i, json := range config.OtherNodes {
 		bs, err := base64.StdEncoding.DecodeString(json.PublicKey)
 		if err != nil {
@@ -115,7 +116,7 @@ func ReadNodeConfig(file string) LaunchableNodeConfig {
 			panic("cannot parse public key after conversion from " + json.PublicKey)
 		}
 
-		journals[json.Name] = storage.NewJournaller(json.Name, config.Name)
+		journals[json.Name] = storage.NewJournaller(json.Name, config.Name, consolidator)
 		others[i] = &NodeConfigWrapper{config: json, public: pub, handler: storage.NewRemoteStorer(hf, &sf, pub, journals[json.Name])}
 	}
 	return &NodeConfigWrapper{config: config, url: url, private: pk, public: &pk.PublicKey, allJournals: journals, others: others}
