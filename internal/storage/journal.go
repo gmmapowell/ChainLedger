@@ -15,6 +15,7 @@ type Journaller interface {
 	CheckTxs(ids []types.Hash) []types.Hash
 	HasWeaveAt(when types.Timestamp) bool
 	StoreWeave(weave *records.Weave)
+	RecordWeaveSignature(when types.Timestamp, id types.Hash, signature types.Signature) error
 	ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error)
 	LatestBlockBy(when types.Timestamp) types.Hash
 	Quit() error
@@ -50,6 +51,10 @@ func (d *DummyJournaller) HasWeaveAt(when types.Timestamp) bool {
 }
 
 func (d *DummyJournaller) StoreWeave(weave *records.Weave) {
+}
+
+func (d *DummyJournaller) RecordWeaveSignature(when types.Timestamp, id types.Hash, signature types.Signature) error {
+	return nil
 }
 
 func (d *DummyJournaller) LatestBlockBy(when types.Timestamp) types.Hash {
@@ -117,6 +122,12 @@ func (d *MemoryJournaller) HasWeaveAt(when types.Timestamp) bool {
 func (d *MemoryJournaller) StoreWeave(weave *records.Weave) {
 	d.finj.NextWaiter("journal-store-weave")
 	d.tothread <- JournalStoreWeaveCommand{Weave: weave}
+}
+
+func (d *MemoryJournaller) RecordWeaveSignature(when types.Timestamp, id types.Hash, signature types.Signature) error {
+	d.finj.NextWaiter("journal-record-weave-signature")
+	d.tothread <- JournalRecordWeaveSignatureCommand{When: when, ID: id, Signature: signature}
+	return nil
 }
 
 func (d *MemoryJournaller) LatestBlockBy(when types.Timestamp) types.Hash {

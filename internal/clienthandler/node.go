@@ -55,7 +55,7 @@ func (node *ListenerNode) Start() error {
 	node.journaller = node.config.AllJournals()[node.Name()]
 	node.runBlockBuilder(clock, node.journaller, node.config, hasher, signer, senders)
 	node.runLoom(clock, hasher, signer, node.config.AllJournals(), senders)
-	node.startAPIListener(resolver, node.journaller, senders)
+	node.startAPIListener(clock, resolver, node.journaller, senders)
 	return nil
 }
 
@@ -83,7 +83,7 @@ func (node ListenerNode) runLoom(clock helpers.Clock, hasher helpers.HasherFacto
 	l.Start()
 }
 
-func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage.Journaller, senders []helpers.BinarySender) {
+func (node *ListenerNode) startAPIListener(clock helpers.Clock, resolver Resolver, journaller storage.Journaller, senders []helpers.BinarySender) {
 	cliapi := http.NewServeMux()
 	pingMe := PingHandler{}
 	cliapi.Handle("/ping", pingMe)
@@ -93,7 +93,7 @@ func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage
 	cliapi.Handle("/remotetx", remoteTxHandler)
 	remoteBlockHandler := internode.NewBlockHandler(node.config)
 	cliapi.Handle("/remoteblock", remoteBlockHandler)
-	remoteWeaveHandler := internode.NewWeaveHandler(node.config)
+	remoteWeaveHandler := internode.NewWeaveHandler(node.config, clock)
 	cliapi.Handle("/remoteweave", remoteWeaveHandler)
 	node.server = &http.Server{Addr: node.config.ListenOn(), Handler: cliapi}
 	err := node.server.ListenAndServe()

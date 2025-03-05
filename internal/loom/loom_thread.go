@@ -50,6 +50,7 @@ func (t *IntervalLoomThread) Run() {
 					if err != nil {
 						log.Printf("%s failed to sign weave %v\n", t.loom.Name(), weave.ID)
 					} else {
+						t.myjournal.RecordWeaveSignature(weave.ConsistentAt, weave.ID, signature)
 						log.Printf("%s wove at %v: %s\n", t.loom.Name(), weaveBefore, weave.ID.String())
 						weave.MarshalAndSend(t.senders, t.loom.Name(), signature)
 					}

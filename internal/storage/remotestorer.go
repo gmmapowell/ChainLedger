@@ -6,11 +6,13 @@ import (
 
 	"github.com/gmmapowell/ChainLedger/internal/helpers"
 	"github.com/gmmapowell/ChainLedger/internal/records"
+	"github.com/gmmapowell/ChainLedger/internal/types"
 )
 
 type RemoteStorer interface {
 	StoreTx(stx *records.StoredTransaction) error
 	StoreBlock(block *records.Block) error
+	SignedWeave(weave *records.Weave, signature types.Signature) error
 }
 
 type CheckAndStore struct {
@@ -44,6 +46,14 @@ func (cas *CheckAndStore) StoreBlock(block *records.Block) error {
 		}
 	}
 	return cas.journal.RecordBlock(block)
+}
+
+func (cas *CheckAndStore) SignedWeave(weave *records.Weave, signature types.Signature) error {
+	err := weave.VerifySignatureIs(cas.hasher, cas.signer, cas.key, signature)
+	if err != nil {
+		return err
+	}
+	return cas.journal.RecordWeaveSignature(weave.ConsistentAt, weave.ID, signature);
 }
 
 func NewRemoteStorer(hasher helpers.HasherFactory, signer helpers.Signer, key *rsa.PublicKey, journal Journaller) RemoteStorer {

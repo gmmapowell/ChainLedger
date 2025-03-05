@@ -43,6 +43,12 @@ type JournalStoreWeaveCommand struct {
 	Weave *records.Weave
 }
 
+type JournalRecordWeaveSignatureCommand struct {
+	When      types.Timestamp
+	ID        types.Hash
+	Signature types.Signature
+}
+
 type JournalLatestBlockByCommand struct {
 	Before     types.Timestamp
 	ResultChan chan<- types.Hash
@@ -61,6 +67,7 @@ func LaunchJournalThread(name string, onNode string, finj helpers.FaultInjection
 	var txs []*records.StoredTransaction
 	var blocks []*records.Block
 	weaves := make(map[types.Timestamp]*records.Weave)
+	sigs := make(map[types.Timestamp]types.Signature)
 	ret := make(chan JournalCommand, 20)
 	log.Printf("%s: launching new journal thread for %s\n", onNode, name)
 	go func() {
@@ -130,6 +137,12 @@ func LaunchJournalThread(name string, onNode string, finj helpers.FaultInjection
 					}
 				}
 				v.ResultChan <- last
+			case JournalRecordWeaveSignatureCommand:
+				if sigs[v.When] != nil {
+					log.Printf("duplicate signature for weave at %d", v.When)
+				} else {
+					sigs[v.When] = v.Signature
+				}
 			case JournalDoneCommand:
 				log.Printf("was a done command %v\n", v)
 				v.NotifyMe <- struct{}{}

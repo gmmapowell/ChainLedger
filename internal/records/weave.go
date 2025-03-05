@@ -1,6 +1,8 @@
 package records
 
 import (
+	"crypto/rsa"
+	"fmt"
 	"log"
 	"net/url"
 
@@ -113,4 +115,12 @@ func UnmarshalBinaryWeave(bytes []byte) (*Weave, *types.Signatory, error) {
 	}
 
 	return &weave, &signer, nil
+}
+
+func (w *Weave) VerifySignatureIs(hasher helpers.HasherFactory, signer helpers.Signer, pub *rsa.PublicKey, signature types.Signature) error {
+	id := w.HashMe(hasher)
+	if !id.Is(w.ID) {
+		return fmt.Errorf("remote weave id %s was not the result of computing it locally: %s", w.ID.String(), id.String())
+	}
+	return signer.Verify(pub, id, signature)
 }
