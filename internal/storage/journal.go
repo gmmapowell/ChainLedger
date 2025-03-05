@@ -16,6 +16,7 @@ type Journaller interface {
 	HasWeaveAt(when types.Timestamp) bool
 	StoreWeave(weave *records.Weave)
 	ReadTransactionsBetween(from types.Timestamp, upto types.Timestamp) ([]*records.StoredTransaction, error)
+	LatestBlockBy(when types.Timestamp) types.Hash
 	Quit() error
 }
 
@@ -49,6 +50,10 @@ func (d *DummyJournaller) HasWeaveAt(when types.Timestamp) bool {
 }
 
 func (d *DummyJournaller) StoreWeave(weave *records.Weave) {
+}
+
+func (d *DummyJournaller) LatestBlockBy(when types.Timestamp) types.Hash {
+	return types.Hash{}
 }
 
 func (d *DummyJournaller) Quit() error {
@@ -114,6 +119,14 @@ func (d *MemoryJournaller) StoreWeave(weave *records.Weave) {
 	d.tothread <- JournalStoreWeaveCommand{Weave: weave}
 }
 
+func (d *MemoryJournaller) LatestBlockBy(when types.Timestamp) types.Hash {
+	messageMe := make(chan types.Hash)
+	d.finj.NextWaiter("journal-latest-block-by")
+	d.tothread <- JournalLatestBlockByCommand{Before: when, ResultChan: messageMe}
+	ret := <-messageMe
+	return ret
+}
+
 func (d *MemoryJournaller) Quit() error {
 	donech := make(chan struct{})
 	d.tothread <- JournalDoneCommand{NotifyMe: donech}
@@ -127,12 +140,12 @@ func (d *MemoryJournaller) AtCapacityWithAtLeast(n int) bool {
 	return <-messageMe
 }
 
-func NewJournaller(name string) Journaller {
-	return TestJournaller(name, helpers.IgnoreFaultInjection())
+func NewJournaller(forNode string, onNode string) Journaller {
+	return TestJournaller(forNode, onNode, helpers.IgnoreFaultInjection())
 }
 
-func TestJournaller(name string, finj helpers.FaultInjection) Journaller {
-	ret := MemoryJournaller{name: name, finj: finj}
-	ret.tothread = LaunchJournalThread(name, finj)
+func TestJournaller(forNode string, onNode string, finj helpers.FaultInjection) Journaller {
+	ret := MemoryJournaller{name: forNode, finj: finj}
+	ret.tothread = LaunchJournalThread(forNode, onNode, finj)
 	return &ret
 }

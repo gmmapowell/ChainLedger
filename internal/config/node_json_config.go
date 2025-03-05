@@ -23,12 +23,13 @@ type NodeJsonConfig struct {
 }
 
 type NodeConfigWrapper struct {
-	config  NodeJsonConfig
-	url     *url.URL
-	private *rsa.PrivateKey
-	public  *rsa.PublicKey
-	others  []NodeConfig
-	handler storage.RemoteStorer // only for remote nodes
+	config      NodeJsonConfig
+	url         *url.URL
+	private     *rsa.PrivateKey
+	public      *rsa.PublicKey
+	others      []NodeConfig
+	handler     storage.RemoteStorer // only for remote nodes
+	allJournals map[string]storage.Journaller
 }
 
 // ListenOn implements LaunchableNodeConfig.
@@ -69,6 +70,10 @@ func (n *NodeConfigWrapper) PublicKey() *rsa.PublicKey {
 	return n.public
 }
 
+func (n *NodeConfigWrapper) AllJournals() map[string]storage.Journaller {
+	return n.allJournals
+}
+
 func ReadNodeConfig(file string) LaunchableNodeConfig {
 	fd, err := os.Open(file)
 	if err != nil {
@@ -98,6 +103,8 @@ func ReadNodeConfig(file string) LaunchableNodeConfig {
 	sf := helpers.RSASigner{}
 
 	others := make([]NodeConfig, len(config.OtherNodes))
+	journals := make(map[string]storage.Journaller)
+	journals[config.Name] = storage.NewJournaller(config.Name, config.Name)
 	for i, json := range config.OtherNodes {
 		bs, err := base64.StdEncoding.DecodeString(json.PublicKey)
 		if err != nil {
@@ -108,7 +115,8 @@ func ReadNodeConfig(file string) LaunchableNodeConfig {
 			panic("cannot parse public key after conversion from " + json.PublicKey)
 		}
 
-		others[i] = &NodeConfigWrapper{config: json, public: pub, handler: storage.NewRemoteStorer(hf, &sf, pub, storage.NewJournaller(json.Name))}
+		journals[json.Name] = storage.NewJournaller(json.Name, config.Name)
+		others[i] = &NodeConfigWrapper{config: json, public: pub, handler: storage.NewRemoteStorer(hf, &sf, pub, journals[json.Name])}
 	}
-	return &NodeConfigWrapper{config: config, url: url, private: pk, public: &pk.PublicKey, others: others}
+	return &NodeConfigWrapper{config: config, url: url, private: pk, public: &pk.PublicKey, allJournals: journals, others: others}
 }

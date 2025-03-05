@@ -14,7 +14,7 @@ func TestWeCanAddAndRecoverAtTheSameTime(t *testing.T) {
 	cc := helpers.NewChanCollector(t, 2)
 
 	finj := helpers.FaultInjectionLibrary(cc)
-	tj := storage.TestJournaller("journal", finj)
+	tj := storage.TestJournaller("journal", "myself", finj)
 	journal := tj.(*storage.MemoryJournaller)
 	completed := false
 	go func() {

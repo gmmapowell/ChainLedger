@@ -51,13 +51,23 @@ func (c *HarnessConfig) NodeNames() []string {
 func (c *HarnessConfig) Launcher(forNode string) config.LaunchableNodeConfig {
 	for _, n := range c.Nodes {
 		if n.Name == forNode {
-			return &HarnessLauncher{config: c, launching: n, private: c.keys[n.Name], public: &c.keys[n.Name].PublicKey, handlers: makeRemoteHandlers(c, n.Name)}
+			journals := makeAllJournals(c, forNode)
+			handlers := makeRemoteHandlers(c, n.Name, journals)
+			return &HarnessLauncher{config: c, launching: n, private: c.keys[n.Name], public: &c.keys[n.Name].PublicKey, allJournals: journals, handlers: handlers}
 		}
 	}
 	panic("no node found for " + forNode)
 }
 
-func makeRemoteHandlers(c *HarnessConfig, name string) map[string]storage.RemoteStorer {
+func makeAllJournals(c *HarnessConfig, myName string) map[string]storage.Journaller {
+	ret := make(map[string]storage.Journaller)
+	for _, remote := range c.Nodes {
+		ret[remote.Name] = storage.NewJournaller(remote.Name, myName)
+	}
+	return ret
+}
+
+func makeRemoteHandlers(c *HarnessConfig, name string, journals map[string]storage.Journaller) map[string]storage.RemoteStorer {
 	hf := helpers.SHA512Factory{}
 	sf := helpers.RSASigner{}
 
@@ -66,7 +76,7 @@ func makeRemoteHandlers(c *HarnessConfig, name string) map[string]storage.Remote
 		if remote.Name == name {
 			continue
 		}
-		ret[remote.Name] = storage.NewRemoteStorer(hf, &sf, c.pubs[remote.Name], storage.NewJournaller(remote.Name))
+		ret[remote.Name] = storage.NewRemoteStorer(hf, &sf, c.pubs[remote.Name], journals[remote.Name])
 	}
 	return ret
 }

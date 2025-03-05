@@ -19,4 +19,5 @@ type LaunchableNodeConfig interface {
 	PrivateKey() *rsa.PrivateKey
 	OtherNodes() []NodeConfig
 	RemoteStorer(string) storage.RemoteStorer
+	AllJournals() map[string]storage.Journaller
 }

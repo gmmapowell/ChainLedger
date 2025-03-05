@@ -43,6 +43,11 @@ type JournalStoreWeaveCommand struct {
 	Weave *records.Weave
 }
 
+type JournalLatestBlockByCommand struct {
+	Before     types.Timestamp
+	ResultChan chan<- types.Hash
+}
+
 type JournalCheckCapacityCommand struct {
 	AtLeast    int
 	ResultChan chan<- bool
@@ -52,12 +57,12 @@ type JournalDoneCommand struct {
 	NotifyMe chan<- struct{}
 }
 
-func LaunchJournalThread(name string, finj helpers.FaultInjection) chan<- JournalCommand {
+func LaunchJournalThread(name string, onNode string, finj helpers.FaultInjection) chan<- JournalCommand {
 	var txs []*records.StoredTransaction
 	var blocks []*records.Block
 	weaves := make(map[types.Timestamp]*records.Weave)
 	ret := make(chan JournalCommand, 20)
-	log.Printf("launching new journal thread with channel %p\n", ret)
+	log.Printf("%s: launching new journal thread for %s\n", onNode, name)
 	go func() {
 	whenDone:
 		for {
@@ -115,6 +120,16 @@ func LaunchJournalThread(name string, finj helpers.FaultInjection) chan<- Journa
 				v.ResultChan <- weaves[v.When] != nil
 			case JournalStoreWeaveCommand:
 				weaves[v.Weave.ConsistentAt] = v.Weave
+			case JournalLatestBlockByCommand:
+				var last types.Hash
+				var lastWhen types.Timestamp
+				for _, b := range blocks {
+					if b.UpUntil <= v.Before && (last == nil || b.UpUntil > lastWhen) {
+						last = b.ID
+						lastWhen = b.UpUntil
+					}
+				}
+				v.ResultChan <- last
 			case JournalDoneCommand:
 				log.Printf("was a done command %v\n", v)
 				v.NotifyMe <- struct{}{}

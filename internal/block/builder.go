@@ -53,7 +53,7 @@ func (builder *SleepBlockBuilder) Run() {
 			timer = builder.clock.After(delay)
 			nowis := <-builder.clock.After(pause)
 			// we are ready to build a block
-			log.Printf("%s building block at %s\n", builder.Name.String(), nowis.IsoTime())
+			log.Printf("%s timer fired to build block: %s\n", builder.Name.String(), nowis.IsoTime())
 			lastBlock = builder.buildRecordAndSend(prev, blocktime, lastBlock)
 		}
 	}

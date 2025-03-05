@@ -24,11 +24,12 @@ type Node interface {
 }
 
 type ListenerNode struct {
-	config     config.LaunchableNodeConfig
-	Control    types.PingBack
-	waitChan   types.Signal
-	server     *http.Server
-	journaller storage.Journaller
+	config         config.LaunchableNodeConfig
+	BlockerControl types.PingBack
+	LoomControl    chan string
+	waitChan       types.Signal
+	server         *http.Server
+	journaller     storage.Journaller
 }
 
 func (node *ListenerNode) Name() string {
@@ -51,19 +52,20 @@ func (node *ListenerNode) Start() error {
 	for i, n := range node.config.OtherNodes() {
 		senders[i] = internode.NewHttpBinarySender(n.Name())
 	}
-	node.journaller = storage.NewJournaller(node.Name())
+	node.journaller = node.config.AllJournals()[node.Name()]
 	node.runBlockBuilder(clock, node.journaller, node.config, senders)
-	node.runLoom(clock)
+	node.runLoom(clock, hasher, node.config.AllJournals())
 	node.startAPIListener(resolver, node.journaller, senders)
 	return nil
 }
 
 func (node *ListenerNode) ClientsDone() {
 	node.waitChan = make(types.Signal)
-	node.Control <- node.waitChan.Sender()
+	node.BlockerControl <- node.waitChan.Sender()
 }
 
 func (node *ListenerNode) Terminate() {
+	node.LoomControl <- "Quit"
 	node.server.Shutdown(context.Background())
 	<-node.waitChan
 	node.journaller.Quit()
@@ -71,12 +73,13 @@ func (node *ListenerNode) Terminate() {
 }
 
 func (node ListenerNode) runBlockBuilder(clock helpers.Clock, journaller storage.Journaller, config config.LaunchableNodeConfig, senders []helpers.BinarySender) {
-	builder := block.NewBlockBuilder(clock, journaller, config.Name(), config.PrivateKey(), node.Control, senders)
+	builder := block.NewBlockBuilder(clock, journaller, config.Name(), config.PrivateKey(), node.BlockerControl, senders)
 	builder.Start()
 }
 
-func (node ListenerNode) runLoom(clock helpers.Clock) {
-	l := loom.NewLoomThread(clock, node.config.Name().String(), node.config.WeaveInterval(), node.journaller)
+func (node ListenerNode) runLoom(clock helpers.Clock, hasher helpers.HasherFactory, allJournals map[string]storage.Journaller) {
+	theloom := loom.NewLoom(hasher, node.Name(), allJournals)
+	l := loom.NewLoomThread(clock, node.config.Name().String(), node.LoomControl, node.config.WeaveInterval(), theloom, node.journaller)
 	l.Start()
 }
 
@@ -98,5 +101,5 @@ func (node *ListenerNode) startAPIListener(resolver Resolver, journaller storage
 }
 
 func NewListenerNode(config config.LaunchableNodeConfig) Node {
-	return &ListenerNode{config: config, Control: make(types.PingBack)}
+	return &ListenerNode{config: config, BlockerControl: make(types.PingBack), LoomControl: make(chan string)}
 }

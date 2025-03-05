@@ -24,7 +24,7 @@ func (b Blocker) Build(to types.Timestamp, last *records.Block, txs []*records.S
 		ls = last.String()
 		lastID = last.ID
 	}
-	log.Printf("Building block before %s, following %s with %d records\n", to.IsoTime(), ls, len(txs))
+	log.Printf("%s: building block before %s, following %s with %d records\n", b.name.String(), to.IsoTime(), ls, len(txs))
 
 	txids := make([]types.Hash, len(txs))
 	for i, tx := range txs {
