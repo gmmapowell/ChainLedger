@@ -107,25 +107,25 @@ func TestBuildingSubsequentBlockWithTwoMessages(t *testing.T) {
 
 	msg1 := records.StoredTransaction{TxID: m1id}
 	msg2 := records.StoredTransaction{TxID: m2id}
-	block0, _ := blocker.Build(buildTo, &prev, []*records.StoredTransaction{&msg1, &msg2})
-	if !bytes.Equal(block0.PrevID, prevID) {
-		t.Fatalf("Block1 should have a previous block id %v, not %v", prevID, block0.PrevID)
+	subsqblock, _ := blocker.Build(buildTo, &prev, []*records.StoredTransaction{&msg1, &msg2})
+	if !bytes.Equal(subsqblock.PrevID, prevID) {
+		t.Fatalf("Block1 should have a previous block id %v, not %v", prevID, subsqblock.PrevID)
 	}
-	if block0.UpUntil != buildTo {
+	if subsqblock.UpUntil != buildTo {
 		t.Fatalf("the stored block time was not correct")
 	}
-	if len(block0.Txs) != 0 {
-		t.Fatalf("Block0 should not have any messages")
+	if len(subsqblock.Txs) != 2 {
+		t.Fatalf("Block should have two messages")
 	}
-	if !bytes.Equal(block0.ID, retHash) {
+	if !bytes.Equal(subsqblock.ID, retHash) {
 		t.Fatalf("the computed hash was incorrect")
 	}
-	if block0.BuiltBy.String() != nodeName.String() {
+	if subsqblock.BuiltBy.String() != nodeName.String() {
 		t.Fatalf("the signer name was incorrect")
 	}
-	if !bytes.Equal(block0.Signature, retSig) {
+	if !bytes.Equal(subsqblock.Signature, retSig) {
 		t.Logf("expected sig: %v\n", retSig)
-		t.Logf("actual sig:   %v\n", block0.Signature)
+		t.Logf("actual sig:   %v\n", subsqblock.Signature)
 		t.Fatalf("the computed signature was incorrect")
 	}
 }
